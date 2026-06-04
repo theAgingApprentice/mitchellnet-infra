@@ -5,6 +5,31 @@
 .envrc
 
 # =============================================================================
+# MitchellNET: SSL Certificates & Keys
+# =============================================================================
+ssl/certs/
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# =============================================================================
+# MitchellNET: Runtime & Generated Data
+# =============================================================================
+# Docker volumes and data directories
+data/
+volumes/
+
+# Grafana token file (sometimes generated locally)
+GrafanaToken.txt
+*Token.txt
+
+# mkcert CA (installed system-wide, not repo-specific)
+rootCA.pem
+rootCA-key.pem
+
+# =============================================================================
 # Python: Bytecode & Compiled
 # =============================================================================
 __pycache__/
