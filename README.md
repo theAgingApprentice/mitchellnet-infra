@@ -189,11 +189,11 @@ The `.env.example` file documents every variable used across all services. The `
 | Repo | Purpose |
 |---|---|
 | [InternalWebServer](https://github.com/theAgingApprentice/InternalWebServer) | NGINX proxy, static web UI |
-| fitness-tracker | Calendar-based fitness logging (Flask + MariaDB) |
-| bench-instrument-service | LXI instrument REST API (FastAPI) |
-| mitchellnet-monitoring | Grafana, Prometheus, LibreNMS, Telegraf, InfluxDB |
-| mitchellnet-device-registry | IoT device directory (FastAPI + SQLite) |
-| mitchellnet-iot | Mosquitto MQTT broker configuration |
+| [fitness-tracker](https://github.com/theAgingApprentice/fitness-tracker.git) | Calendar-based fitness logging (Flask + MariaDB) |
+| [bench-instrument-service](https://github.com/theAgingApprentice/bench-instrument-service.git) | LXI instrument REST API (FastAPI) |
+| [mitchellnet-monitoring](https://github.com/theAgingApprentice/mitchellnet-monitoring.git) | Grafana, Prometheus, LibreNMS, Telegraf, InfluxDB |
+| [mitchellnet-device-registry](https://github.com/theAgingApprentice/mitchellnet-device-registry.git) | IoT device directory (FastAPI + SQLite) |
+| [mitchellnet-iot](https://github.com/theAgingApprentice/mitchellnet-iot.git) | Mosquitto MQTT broker configuration |
 | [christmasTree](https://github.com/theAgingApprentice/christmasTree) | ESP32 WS2812B LED controller (IoT device firmware) |
 
 ---
