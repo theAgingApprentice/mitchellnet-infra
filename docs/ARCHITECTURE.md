@@ -146,6 +146,12 @@ networks:
     internal: true
 ```
 
+### nginx-proxy must be on the mitchellnet network
+
+For NGINX to resolve upstream container hostnames (e.g., `http://bench-instrument-service:8000`), the `nginx-proxy` container itself must be a member of the `mitchellnet` network — not just the service containers. Without this, Docker's internal DNS cannot resolve the container names and NGINX returns a 502.
+
+This is now configured permanently in `InternalWebServer`'s `docker-compose.yml` by declaring `mitchellnet` as a network for the `nginx-proxy` service. Do not remove this network attachment.
+
 ### Container naming convention
 
 Container names are the DNS names used by NGINX. Use consistent, predictable names:
@@ -283,26 +289,26 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 
 ### Currently running (as of June 2026)
 
-| Service | Technology | Status | Repo | Notes |
-|---|---|---|---|---|
-| NGINX proxy | nginx:1.29 | ✅ Running | InternalWebServer | SSL termination |
-| Fitness Tracker | Flask + MariaDB | ✅ Running | InternalWebServer (embedded) | Needs extraction |
-| Grafana | Grafana OSS | ✅ Running | ad-hoc | Needs formalising |
-| Prometheus | Prometheus | ✅ Running | ad-hoc | Needs formalising |
-| LibreNMS | LibreNMS | ✅ Running | ad-hoc | SNMP monitoring |
-| Telegraf | Telegraf | ✅ Running | ad-hoc | Metrics collection |
-| InfluxDB | InfluxDB | ✅ Running | ad-hoc | Time-series DB |
-| Mosquitto | Eclipse Mosquitto | ✅ Running | ad-hoc | MQTT broker |
-| Node Exporter | Prometheus exporter | ✅ Running | ad-hoc | Host metrics |
-| Blackbox Exporter | Prometheus exporter | ✅ Running | ad-hoc | Endpoint probing |
-| MariaDB | MariaDB 10.7 | ✅ Running | InternalWebServer (embedded) | Fitness Tracker DB |
-| UniFi Controller | UniFi Network App | ✅ Running | ad-hoc | AP management |
+| Service | Technology | Status | Repo | Container Name | Host Port | Internal Port | Deployed | Notes |
+|---|---|---|---|---|---|---|---|---|
+| NGINX proxy | nginx:1.29 | ✅ Running | InternalWebServer | `nginx-proxy` | 80, 443 | 80, 443 | — | SSL termination |
+| Fitness Tracker | Flask + MariaDB | ✅ Running | InternalWebServer (embedded) | `fitness-tracker` | — | 5000 | — | Needs extraction |
+| Bench Instrument Service | FastAPI | ✅ Live | bench-instrument-service | `bench-instrument-service` | 8001 | 8000 | 2026-06-04 | Host port 8001 due to LibreNMS conflict on 8000 |
+| Grafana | Grafana OSS | ✅ Running | ad-hoc | `grafana` | — | 3000 | — | Needs formalising |
+| Prometheus | Prometheus | ✅ Running | ad-hoc | `prometheus` | — | 9090 | — | Needs formalising |
+| LibreNMS | LibreNMS | ✅ Running | ad-hoc | `librenms` | 8000 | 8080 | — | SNMP monitoring |
+| Telegraf | Telegraf | ✅ Running | ad-hoc | `telegraf` | — | — | — | Metrics collection |
+| InfluxDB | InfluxDB | ✅ Running | ad-hoc | `influxdb` | — | 8086 | — | Time-series DB |
+| Mosquitto | Eclipse Mosquitto | ✅ Running | ad-hoc | `mosquitto` | — | 1883 | — | MQTT broker |
+| Node Exporter | Prometheus exporter | ✅ Running | ad-hoc | `node-exporter` | — | 9100 | — | Host metrics |
+| Blackbox Exporter | Prometheus exporter | ✅ Running | ad-hoc | `blackbox-exporter` | — | 9115 | — | Endpoint probing |
+| MariaDB | MariaDB 10.7 | ✅ Running | InternalWebServer (embedded) | `mariadb-prod` | — | 3306 | — | Fitness Tracker DB |
+| UniFi Controller | UniFi Network App | ✅ Running | ad-hoc | `unifi` | — | — | — | AP management |
 
 ### Planned / in progress
 
 | Service | Technology | Status | Repo |
 |---|---|---|---|
-| Bench Instrument Service | FastAPI | 🔨 Step 1 | bench-instrument-service |
 | IoT Device Registry | FastAPI + SQLite | 📋 Planned | mitchellnet-device-registry |
 
 ---

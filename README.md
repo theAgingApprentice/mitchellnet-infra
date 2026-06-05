@@ -55,11 +55,21 @@ All services are reachable under `https://mitchellnet.local`. No service is acce
 |---|---|---|---|
 | Dashboard | `https://mitchellnet.local/` | [InternalWebServer](https://github.com/theAgingApprentice/InternalWebServer) | ✅ Live |
 | Fitness Tracker | `https://mitchellnet.local/fitness/` | fitness-tracker | 🔨 Extracting |
-| Bench Instrument Service | `https://mitchellnet.local/api/bench/` | bench-instrument-service | 📋 Planned |
+| Bench Instrument Service | `https://mitchellnet.local/api/bench/` | bench-instrument-service | ✅ Live |
 | Grafana | `https://mitchellnet.local/grafana/` | mitchellnet-monitoring | 🔨 Formalising |
 | Prometheus | `https://mitchellnet.local/prometheus/` | mitchellnet-monitoring | 🔨 Formalising |
 | LibreNMS | `https://mitchellnet.local/librenms/` | mitchellnet-monitoring | 🔨 Formalising |
 | IoT Device Registry | `https://mitchellnet.local/devices/` | mitchellnet-device-registry | 📋 Planned |
+
+---
+
+## Known Port Conflicts
+
+| Host Port | Occupied By | Resolution |
+|---|---|---|
+| 8000 | LibreNMS (host-mapped) | Bench Instrument Service mapped to host port **8001** (internal port remains 8000) |
+
+> **Note:** BIS listens on port 8000 inside its container. Because LibreNMS already occupies host port 8000, the `bench-instrument-service` docker-compose.yml maps `8001:8000`. NGINX proxies to the container's internal port 8000 by container name — the host port mapping does not affect NGINX routing.
 
 ---
 
