@@ -22,6 +22,15 @@ mitchellnet-infra/
 │   └── runbook.md            # Step-by-step rebuild procedure
 ├── network/
 │   └── create.sh             # Creates the mitchellnet Docker network
+├── scripts/
+│   ├── aaGitPromote          # Create branch, stage, commit, push, print PR link
+│   ├── aaGitCleanupBranches  # Delete all branches except main, pull latest
+│   ├── aaRegisterRunner      # Register a GitHub Actions self-hosted runner
+│   └── aaInstall             # Install all scripts to /usr/local/bin
+├── server-setup/
+│   ├── bootstrap.sh          # Full server rebuild entry point
+│   └── motd/
+│       └── motd              # Server message of the day (copy to /etc/motd)
 ├── ssl/
 │   ├── generate.sh           # Generates mkcert wildcard cert for mitchellnet.local
 │   └── check-expiry.sh       # Warns if cert expiry is within 90 days
