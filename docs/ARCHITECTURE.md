@@ -11,16 +11,17 @@
 
 1. [Guiding Principles](#1-guiding-principles)
 2. [Repository Strategy](#2-repository-strategy)
-3. [Docker Networking](#3-docker-networking)
-4. [NGINX Routing](#4-nginx-routing)
-5. [SSL Strategy](#5-ssl-strategy)
-6. [CI/CD Pattern](#6-cicd-pattern)
-7. [Service Inventory](#7-service-inventory)
-8. [Fitness Tracker Extraction Plan](#8-fitness-tracker-extraction-plan)
-9. [IoT Device Registry](#9-iot-device-registry)
-10. [MQTT Topic Convention](#10-mqtt-topic-convention)
-11. [Future Network Architecture](#11-future-network-architecture)
-12. [Implementation Roadmap](#12-implementation-roadmap)
+3. [Script Strategy](#3-script-strategy)
+4. [Docker Networking](#4-docker-networking)
+5. [NGINX Routing](#5-nginx-routing)
+6. [SSL Strategy](#6-ssl-strategy)
+7. [CI/CD Pattern](#7-cicd-pattern)
+8. [Service Inventory](#8-service-inventory)
+9. [Fitness Tracker Extraction Plan](#9-fitness-tracker-extraction-plan)
+10. [IoT Device Registry](#10-iot-device-registry)
+11. [MQTT Topic Convention](#11-mqtt-topic-convention)
+12. [Future Network Architecture](#12-future-network-architecture)
+13. [Implementation Roadmap](#13-implementation-roadmap)
 
 ---
 
@@ -62,7 +63,7 @@ Currently embedded in InternalWebServer. After extraction, owns:
 - MariaDB container and volume
 - Its own `docker-compose.yml`, `Dockerfile`, and CI/CD pipeline
 
-See [Section 8](#8-fitness-tracker-extraction-plan) for the migration plan.
+See [Section 9](#9-fitness-tracker-extraction-plan) for the migration plan.
 
 ### `bench-instrument-service` (new — Step 1)
 FastAPI REST API abstracting the four LXI/Ethernet bench instruments:
@@ -99,7 +100,23 @@ Top-level orchestration. Does **not** contain application code. Contains:
 
 ---
 
-## 3. Docker Networking
+## 3. Script Strategy
+
+MitchellNET workflow scripts live in `mitchellnet-infra/scripts/` and are installed to `/usr/local/bin` on both the Mac Studio and the Ubuntu server by running:
+
+```bash
+bash scripts/aaInstall
+```
+
+This makes all `aa`-prefixed scripts available as system-wide commands on any machine that runs the install. Scripts cover git workflow (branch, commit, push), branch cleanup, GitHub Actions runner registration, and the install mechanism itself.
+
+**Mac Studio vs. Ubuntu server:** The same `scripts/` directory is installed on both machines. Personal Mac Studio developer utilities that are not related to MitchellNET (dotfiles, macOS-specific tooling, etc.) live in a separate `macstudio-setup` repo and are not installed from here.
+
+**Retired:** The Pi section of the old `localScripts` repo is retired. All MitchellNET scripts now live in this repo.
+
+---
+
+## 4. Docker Networking
 
 ### The `mitchellnet` named network
 
@@ -170,7 +187,7 @@ Container names are the DNS names used by NGINX. Use consistent, predictable nam
 
 ---
 
-## 4. NGINX Routing
+## 5. NGINX Routing
 
 NGINX in `InternalWebServer` is the canonical URL map for all of MitchellNET. All services are reachable under `https://mitchellnet.local`. No service is accessed by raw port number.
 
@@ -215,7 +232,7 @@ Note the trailing slash on both `location` and `proxy_pass` — this strips the 
 
 ---
 
-## 5. SSL Strategy
+## 6. SSL Strategy
 
 SSL terminates at NGINX. All services behind the proxy communicate over plain HTTP on the `mitchellnet` Docker network. No per-service certificate management.
 
@@ -237,7 +254,7 @@ The wildcard SAN (`*.mitchellnet.local`) covers all current and future services 
 
 ---
 
-## 6. CI/CD Pattern
+## 7. CI/CD Pattern
 
 Each service repo uses GitHub Actions with a consistent deployment pattern.
 
@@ -285,7 +302,7 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 
 ---
 
-## 7. Service Inventory
+## 8. Service Inventory
 
 ### Currently running (as of June 2026)
 
@@ -313,7 +330,7 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 
 ---
 
-## 8. Fitness Tracker Extraction Plan
+## 9. Fitness Tracker Extraction Plan
 
 The Fitness Tracker is currently embedded in `InternalWebServer`. Extracting it is the highest-priority refactoring task because it proves the "new service" pattern and cleans up the foundational InternalWebServer repo.
 
@@ -369,7 +386,7 @@ The current stack has both `nginx-proxy` and `nginx-prod` containers. During ext
 
 ---
 
-## 9. IoT Device Registry
+## 10. IoT Device Registry
 
 A FastAPI service that maintains a directory of every IoT device on MitchellNET — permanent, seasonal, and workshop. It is a **read/write directory**, not a control plane. Commands go via MQTT topics directly; the registry tells you what topics to use.
 
@@ -455,7 +472,7 @@ The frontend at `https://mitchellnet.local/devices/` shows:
 
 ---
 
-## 10. MQTT Topic Convention
+## 11. MQTT Topic Convention
 
 ### Hierarchy
 
@@ -521,7 +538,7 @@ mosquitto_sub -t "mitchellnet/living-room/christmas-tree/#"
 
 ---
 
-## 11. Future Network Architecture
+## 12. Future Network Architecture
 
 The planned network upgrade (OPNsense firewall + managed switching + UniFi APs + VLANs) does not require changes to the MitchellNET software architecture, but the following design decisions should be made **before** the network cutover.
 
@@ -551,7 +568,7 @@ When the DMZ Pi is added, it becomes a second host in `mitchellnet-infra`. Servi
 
 ---
 
-## 12. Implementation Roadmap
+## 13. Implementation Roadmap
 
 ### Phase 1 — Foundation (do first, no service disruption)
 

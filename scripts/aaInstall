@@ -1,0 +1,21 @@
+#!/bin/bash
+# Copies all scripts in scripts/ to /usr/local/bin and makes them executable.
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+echo "Installing scripts from ${SCRIPT_DIR} to /usr/local/bin..."
+echo ""
+
+for script in "$SCRIPT_DIR"/*; do
+    if [ -f "$script" ]; then
+        name="$(basename "$script")"
+        echo "  Copying: $name"
+        sudo cp "$script" "/usr/local/bin/$name"
+        sudo chmod +x "/usr/local/bin/$name"
+    fi
+done
+
+echo ""
+echo "Done. All scripts installed to /usr/local/bin."

@@ -1,0 +1,54 @@
+#!/bin/bash
+# Deletes all local and remote branches except main, then pulls the latest main.
+
+set -e
+
+LOCAL_BRANCHES=$(git branch | grep -v '^\* main$' | grep -v '^  main$' | sed 's/^[* ]*//' | grep -v '^$')
+REMOTE_BRANCHES=$(git branch -r | grep -v 'origin/HEAD' | grep -v 'origin/main' | sed 's|.*origin/||' | sed 's/^[[:space:]]*//' | grep -v '^$')
+
+if [ -z "$LOCAL_BRANCHES" ] && [ -z "$REMOTE_BRANCHES" ]; then
+    echo "No branches to delete. Only 'main' exists."
+    git checkout main
+    git pull
+    exit 0
+fi
+
+echo "The following branches will be deleted:"
+echo ""
+if [ -n "$LOCAL_BRANCHES" ]; then
+    echo "Local:"
+    while IFS= read -r b; do echo "  $b"; done <<< "$LOCAL_BRANCHES"
+fi
+if [ -n "$REMOTE_BRANCHES" ]; then
+    echo "Remote (origin):"
+    while IFS= read -r b; do echo "  $b"; done <<< "$REMOTE_BRANCHES"
+fi
+echo ""
+read -r -p "Are you sure you want to delete all of these? (yes/no): " CONFIRM
+
+if [ "$CONFIRM" != "yes" ]; then
+    echo "Aborted."
+    exit 0
+fi
+
+git checkout main
+
+if [ -n "$LOCAL_BRANCHES" ]; then
+    while IFS= read -r b; do
+        echo "Deleting local branch: $b"
+        git branch -D "$b"
+    done <<< "$LOCAL_BRANCHES"
+fi
+
+if [ -n "$REMOTE_BRANCHES" ]; then
+    while IFS= read -r b; do
+        echo "Deleting remote branch: origin/$b"
+        git push origin --delete "$b"
+    done <<< "$REMOTE_BRANCHES"
+fi
+
+echo ""
+echo "Pulling latest main..."
+git pull
+
+echo "Done. All branches except main have been deleted."

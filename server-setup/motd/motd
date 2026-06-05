@@ -1,0 +1,22 @@
+============================================================
+  MitchellNET
+============================================================
+
+  Hostname : ubuntu-server
+  IP       : 192.168.2.10
+
+------------------------------------------------------------
+  Running Services                    mitchellnet.local
+------------------------------------------------------------
+
+  Dashboard              https://mitchellnet.local/
+  Fitness Tracker        https://mitchellnet.local/fitness/
+  Bench Instruments      https://mitchellnet.local/api/bench/
+  Grafana                https://mitchellnet.local/grafana/
+  Prometheus             https://mitchellnet.local/prometheus/
+  LibreNMS               https://mitchellnet.local/librenms/
+  IoT Device Registry    https://mitchellnet.local/devices/
+
+------------------------------------------------------------
+  Runbook: mitchellnet-infra/docs/runbook.md
+------------------------------------------------------------

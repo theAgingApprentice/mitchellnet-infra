@@ -33,6 +33,23 @@ mitchellnet-infra/
 
 ---
 
+## Scripts
+
+Workflow scripts for managing MitchellNET git operations and server setup. All scripts are prefixed with `aa` and live in `scripts/`. Install them to `/usr/local/bin` on any machine that needs them:
+
+```bash
+bash scripts/aaInstall
+```
+
+| Script | Description |
+|---|---|
+| `aaGitPromote` | Creates a branch, stages all changes, commits, pushes, and prints a PR link. Args: `<branch-name> [commit-message]` |
+| `aaGitCleanupBranches` | Deletes all local and remote branches except `main`, then pulls the latest `main`. Includes a confirmation prompt. |
+| `aaRegisterRunner` | Guides through registering a new GitHub Actions self-hosted runner for a given repo. Arg: `<repo-name>` |
+| `aaInstall` | Copies all scripts in `scripts/` to `/usr/local/bin` and makes them executable. |
+
+---
+
 ## Host
 
 | Property | Value |
@@ -133,6 +150,31 @@ git clone https://github.com/theAgingApprentice/InternalWebServer.git
 ```
 
 For a full-stack rebuild using the single Compose file, see [docs/runbook.md](docs/runbook.md).
+
+---
+
+## Server Setup
+
+`server-setup/bootstrap.sh` is the entry point for rebuilding the Ubuntu server from scratch. It runs the full setup sequence in a single command:
+
+```bash
+bash server-setup/bootstrap.sh
+```
+
+The bootstrap script runs these steps in order:
+
+1. Verifies Docker is installed (exits with install instructions if not)
+2. Creates the `mitchellnet` Docker network (`network/create.sh`)
+3. Generates the mkcert SSL certificate for `mitchellnet.local` (`ssl/generate.sh`)
+4. Installs all scripts from `scripts/` to `/usr/local/bin` (`scripts/aaInstall`)
+
+After bootstrap completes, the remaining manual steps are printed: register a GitHub Actions runner for each service repo using `aaRegisterRunner`, then deploy each service from its own GitHub repo.
+
+The server MOTD is at `server-setup/motd/motd`. Copy it to the Ubuntu server:
+
+```bash
+sudo cp server-setup/motd/motd /etc/motd
+```
 
 ---
 
