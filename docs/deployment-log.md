@@ -4,6 +4,12 @@ A running record of first deployments, significant configuration changes, and le
 
 ---
 
+## 2026-06-05 — Script strategy formalised
+
+**What changed:** `macstudio-setup` repo created at https://github.com/theAgingApprentice/macstudio-setup. `localScripts` repo archived. MitchellNET script strategy formalised with scripts split between `mitchellnet-infra/scripts/` (MitchellNET workflow tools, installed on both Mac Studio and Ubuntu server) and `macstudio-setup/scripts/` (personal Mac Studio dev environment tools). See `docs/ARCHITECTURE.md` Section 3 for the full script location reference.
+
+---
+
 ## 2026-06-04 — bench-instrument-service — Phase 1 complete
 
 **Service:** bench-instrument-service  

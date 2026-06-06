@@ -110,9 +110,15 @@ bash scripts/aaInstall
 
 This makes all `aa`-prefixed scripts available as system-wide commands on any machine that runs the install. Scripts cover git workflow (branch, commit, push), branch cleanup, GitHub Actions runner registration, and the install mechanism itself.
 
-**Mac Studio vs. Ubuntu server:** The same `scripts/` directory is installed on both machines. Personal Mac Studio developer utilities that are not related to MitchellNET (dotfiles, macOS-specific tooling, etc.) live in a separate `macstudio-setup` repo and are not installed from here.
+Personal Mac Studio developer environment tools live in the separate [macstudio-setup](https://github.com/theAgingApprentice/macstudio-setup) repo. The `localScripts` repo has been archived as of June 2026 — all relevant scripts have been migrated to either `mitchellnet-infra/scripts/` or `macstudio-setup/scripts/`.
 
-**Retired:** The Pi section of the old `localScripts` repo is retired. All MitchellNET scripts now live in this repo.
+### Script location reference
+
+| Location | Scripts | Purpose |
+|---|---|---|
+| `mitchellnet-infra/scripts/` | `aaGitPromote`, `aaGitCleanupBranches`, `aaRegisterRunner`, `aaInstall` | MitchellNET workflow tools — installed on both Mac Studio and Ubuntu server |
+| `macstudio-setup/scripts/` | `aaCopyMotd`, `aaCopyScripts`, `aaHelp`, `aaGoMqtt`, `install.sh` | Personal Mac Studio dev environment tools |
+| `mitchellnet-iot/` | `aaMqtt` | IoT/MQTT tools (future) |
 
 ---
 

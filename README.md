@@ -44,7 +44,7 @@ mitchellnet-infra/
 
 ## Scripts
 
-Workflow scripts for managing MitchellNET git operations and server setup. All scripts are prefixed with `aa` and live in `scripts/`. Install them to `/usr/local/bin` on any machine that needs them:
+Workflow scripts for managing MitchellNET git operations and server setup. All scripts are prefixed with `aa` and live in `scripts/`. The scripts in `mitchellnet-infra/scripts/` serve both the Ubuntu server and Mac Studio — install them to `/usr/local/bin` on any machine that needs them:
 
 ```bash
 bash scripts/aaInstall
@@ -56,6 +56,8 @@ bash scripts/aaInstall
 | `aaGitCleanupBranches` | Deletes all local and remote branches except `main`, then pulls the latest `main`. Includes a confirmation prompt. |
 | `aaRegisterRunner` | Guides through registering a new GitHub Actions self-hosted runner for a given repo. Arg: `<repo-name>` |
 | `aaInstall` | Copies all scripts in `scripts/` to `/usr/local/bin` and makes them executable. |
+
+Personal Mac Studio developer environment utilities (Homebrew setup, MOTD, macOS-specific tooling) live in the separate [macstudio-setup](https://github.com/theAgingApprentice/macstudio-setup) repo and are not installed from here.
 
 ---
 
@@ -256,6 +258,8 @@ The `.env.example` file documents every variable used across all services. The `
 | [mitchellnet-device-registry](https://github.com/theAgingApprentice/mitchellnet-device-registry.git) | IoT device directory (FastAPI + SQLite) |
 | [mitchellnet-iot](https://github.com/theAgingApprentice/mitchellnet-iot.git) | Mosquitto MQTT broker configuration |
 | [christmasTree](https://github.com/theAgingApprentice/christmasTree) | ESP32 WS2812B LED controller (IoT device firmware) |
+| [macstudio-setup](https://github.com/theAgingApprentice/macstudio-setup) | Mac Studio developer environment setup and workflow scripts |
+| localScripts *(archived)* | Retired — scripts migrated to mitchellnet-infra/scripts and macstudio-setup |
 
 ---
 
