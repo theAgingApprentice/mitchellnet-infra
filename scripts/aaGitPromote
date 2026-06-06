@@ -33,7 +33,8 @@ echo "Pushing to origin/$BRANCH_NAME..."
 git push -u origin "$BRANCH_NAME"
 
 if [ -n "$REPO_PATH" ]; then
+    PR_LINK="https://github.com/${REPO_PATH}/compare/${BRANCH_NAME}?expand=1"
     echo ""
     echo "Open a pull request:"
-    echo "  https://github.com/${REPO_PATH}/compare/${BRANCH_NAME}?expand=1"
+    printf '\e]8;;%s\e\\%s\e]8;;\e\\\n' "$PR_LINK" "$PR_LINK"
 fi
