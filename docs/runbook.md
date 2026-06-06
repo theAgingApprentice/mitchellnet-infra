@@ -4,6 +4,70 @@ Step-by-step procedures for rebuilding or extending MitchellNET infrastructure. 
 
 ---
 
+## Developer Workflow
+
+### Standard flow
+
+All work on service repos goes through pull requests. Never push directly to `main` on a service repo.
+
+Use `aaGitPromote` to stage, commit, push, and open a PR in one step:
+
+```
+1. Make changes locally
+2. aaGitPromote <branch-name> "commit message"
+3. Open the PR link it prints
+4. Wait for status checks to pass
+5. Merge the PR on GitHub
+6. aaGitCleanupBranches
+```
+
+### Scripts reference
+
+| Script | What it does | When to use |
+|---|---|---|
+| `aaGitPromote` | Stages all changes, commits, pushes to a branch, and prints a PR link | Every time you want to open a PR |
+| `aaGitCleanupBranches` | Switches to `main`, pulls latest, deletes merged local branches | After merging a PR |
+| `aaRegisterRunner` | Registers a GitHub Actions self-hosted runner for a repo on the Ubuntu server | When adding CI/CD to a new service repo |
+| `aaInstall` | Copies all scripts from `mitchellnet-infra/scripts/` to `/usr/local/bin` | After cloning mitchellnet-infra or updating any script |
+| `aaNewService` | Walks interactively through the full setup checklist for a new service repo | When creating a new MitchellNET service |
+
+### Installing scripts
+
+Scripts must be installed to `/usr/local/bin` before they can be run from anywhere. From the `mitchellnet-infra` repo root:
+
+```bash
+bash scripts/aaInstall
+```
+
+Re-run this any time a script is added or updated. This works on both Mac Studio and the Ubuntu server.
+
+### Branch protection rules
+
+All MitchellNET service repos use these settings (classic branch protection rule for `main`):
+
+- **Require a pull request before merging** — no direct pushes to `main`
+- **Require status checks to pass** — the deploy workflow must succeed before merging
+- **No approving reviews required** — solo developer, self-approval is fine
+- **Do not allow bypassing** — the rules apply even to repo admins
+
+> Note: Branch protection rules are only enforced on public repositories under the GitHub Free plan. All service repos must be public.
+
+### Setting up a new service repo
+
+Run the interactive setup script:
+
+```bash
+aaNewService <repo-name>
+```
+
+This walks through every step: creating the GitHub repo, adding branch protection, registering the runner, cloning locally, and prints a checklist of what still needs to be done manually (Dockerfile, docker-compose.yml, deploy workflow, etc.). See the script itself for full details.
+
+### Repo-specific notes
+
+`mitchellnet-infra` and `macstudio-setup` have no CI/CD pipeline. Direct pushes to `main` are acceptable for those two repos only.
+
+---
+
 ## Mac Studio Setup
 
 To set up a new Mac Studio development environment:
