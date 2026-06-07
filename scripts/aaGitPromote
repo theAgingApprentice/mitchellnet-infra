@@ -14,6 +14,13 @@ if [ -z "$BRANCH_NAME" ]; then
     exit 1
 fi
 
+CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+if [ "$CURRENT_BRANCH" != "main" ]; then
+    echo "WARNING: You are not on the main branch. Current branch: $CURRENT_BRANCH"
+    echo "aaGitPromote is intended to be run from main. Press Enter to continue anyway, or Ctrl+C to abort."
+    read -r
+fi
+
 REMOTE_URL=$(git remote get-url origin 2>/dev/null || echo "")
 REPO_PATH=""
 if [[ "$REMOTE_URL" =~ github\.com[:/](.+/.+)(\.git)?$ ]]; then
