@@ -167,3 +167,32 @@ bash ssl/generate.sh
 ```
 
 Certs are written to `ssl/certs/` (git-ignored). After regeneration, restart the NGINX container so it picks up the new certificate.
+
+---
+
+## NGINX Proxy Pass Pattern
+
+MitchellNET uses **Approach A** for all services proxied through NGINX: NGINX carries a trailing slash on `proxy_pass`, and backend services use simple routes with no path prefix.
+
+### How it works
+
+- **NGINX**: `proxy_pass http://service-name:port/;` — trailing slash present
+- **Backend** (Flask and all other services): `@app.route('/')`, `@app.route('/api/health')` — no location prefix in routes
+
+The trailing slash on `proxy_pass` causes NGINX to strip the location prefix before forwarding to the backend. For example, a request to `/fitness/api/health` is forwarded to the backend as `/api/health`.
+
+### Correct NGINX config block
+
+```nginx
+location /fitness/ {
+    proxy_pass http://fitness-tracker:5000/;
+    proxy_http_version 1.1;
+    add_header X-Upstream fitness-tracker;
+}
+```
+
+### Why the trailing slash must never be removed
+
+Removing the trailing slash causes NGINX to forward the full path including the location prefix (`/fitness/api/health`) to the backend. The backend has no route for that path and returns a 404. This is a silent misconfiguration — the container starts and NGINX responds, but every request fails.
+
+This pattern applies to every service in the NGINX routing table.
