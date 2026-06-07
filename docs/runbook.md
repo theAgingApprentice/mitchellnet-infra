@@ -196,3 +196,16 @@ location /fitness/ {
 Removing the trailing slash causes NGINX to forward the full path including the location prefix (`/fitness/api/health`) to the backend. The backend has no route for that path and returns a 404. This is a silent misconfiguration — the container starts and NGINX responds, but every request fails.
 
 This pattern applies to every service in the NGINX routing table.
+
+### WARNING: Location blocks must exist in BOTH NGINX config files
+
+> **CRITICAL: Every service location block must exist in BOTH nginx config files**
+
+The InternalWebServer repo has two separate NGINX server blocks in two separate files:
+
+- `nginx/conf.d/prod.conf` — handles `mitchellnet.local` (hostname-based access)
+- `nginx/conf.d/000-bareip.conf` — handles `192.168.2.10` (IP-based access)
+
+When adding a new service location block (e.g. `/fitness/`, `/api/bench/`), it must be added to **both** files. If it is only added to `prod.conf`, the service will work via `mitchellnet.local` but return 404 via the IP address — and vice versa. This mistake is not obvious and is very hard to debug because NGINX, Flask, and the deploy pipeline all appear correct.
+
+Any time a new service is onboarded via `aaNewService` or manually, verify both files contain the location block before closing the task.
