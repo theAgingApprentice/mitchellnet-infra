@@ -338,16 +338,31 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 
 ## 9. Fitness Tracker Extraction Plan
 
-The Fitness Tracker is currently embedded in `InternalWebServer`. Extracting it is the highest-priority refactoring task because it proves the "new service" pattern and cleans up the foundational InternalWebServer repo.
+**Status: COMPLETE** — Extraction fully deployed and running in production as of June 2026.
 
-### What needs to move
+### What was implemented
+
+- Flask app running in its own Docker container, joining the `mitchellnet` network as `fitness-tracker`
+- MariaDB running in a separate container on an internal-only `fitness-internal` network — not reachable from NGINX or other services
+- Accessible at `https://mitchellnet.local/fitness/` via NGINX reverse proxy
+- NGINX uses Approach A: `proxy_pass http://fitness-tracker:5000/;` — the trailing slash causes NGINX to strip the `/fitness/` prefix before forwarding to the backend (see [NGINX Proxy Pass Pattern](runbook.md#nginx-proxy-pass-pattern) in the runbook)
+- Flask uses simple routes without path prefixes: `@app.route('/')`, `@app.route('/api/health')`, etc.
+- Deploy workflow automates `docker compose build --no-cache` on every merge to `main`
+- Old static files removed from `InternalWebServer`
+- CI/CD via GitHub Actions self-hosted runner on the Ubuntu server
+
+### Original extraction plan (archived)
+
+The following sections document the plan as it was designed. Preserved for context on the decisions made during migration.
+
+#### What needed to move
 
 - `backend/fitnessTracker/` → new repo root
 - `html/prod/fitnessTracker/` → new repo `frontend/`
 - `database/fitnessTracker/structure/*.sql` → new repo `database/`
 - The `mariadb-prod` and `fitness-tracker-backend-prod` service definitions from `docker-compose.yml`
 
-### API path change required
+#### API path change required
 
 The current API path `/api` must become `/fitness/api` to avoid namespace collisions as more services are added. Changes required:
 
@@ -355,7 +370,7 @@ The current API path `/api` must become `/fitness/api` to avoid namespace collis
 2. In the new repo's NGINX `location` block: route `/fitness/api/` → `fitness-tracker:5000/api/`
 3. In InternalWebServer's `nginx/conf.d/prod.conf`: remove the existing `/api/` block and replace with the scoped version
 
-### MariaDB data migration
+#### MariaDB data migration
 
 The production database has 670+ real activity log entries in a named Docker volume (`mariadb_prod_data`). Migration procedure:
 
@@ -376,11 +391,11 @@ ssh andrew@192.168.2.10 \
    fitness_tracker_prod -e 'SELECT COUNT(*) FROM activityLog;'"
 ```
 
-### Two NGINX containers
+#### Two NGINX containers
 
 The current stack has both `nginx-proxy` and `nginx-prod` containers. During extraction, rationalise to a single `nginx-proxy` container. The `nginx-prod` container appears to be a legacy artefact — confirm it serves no unique purpose before removing.
 
-### Extraction sequence (zero-downtime)
+#### Extraction sequence (zero-downtime)
 
 1. Create `fitness-tracker` repo, copy code, write `Dockerfile`, write `docker-compose.yml` (joins `mitchellnet`, has internal MariaDB network)
 2. Deploy new stack alongside existing — new containers run on the `mitchellnet` network but NGINX doesn't route to them yet
