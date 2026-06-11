@@ -22,6 +22,7 @@
 11. [MQTT Topic Convention](#11-mqtt-topic-convention)
 12. [Future Network Architecture](#12-future-network-architecture)
 13. [Implementation Roadmap](#13-implementation-roadmap)
+14. [Security Hardening (Phase 0)](#14-security-hardening-phase-0)
 
 ---
 
@@ -315,8 +316,8 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 | Service | Technology | Status | Repo | Container Name | Host Port | Internal Port | Deployed | Notes |
 |---|---|---|---|---|---|---|---|---|
 | NGINX proxy | nginx:1.29 | ✅ Running | InternalWebServer | `nginx-proxy` | 80, 443 | 80, 443 | — | SSL termination |
-| Fitness Tracker | Flask + MariaDB | ✅ Running | InternalWebServer (embedded) | `fitness-tracker` | — | 5000 | — | Needs extraction |
-| Bench Instrument Service | FastAPI | ✅ Live | bench-instrument-service | `bench-instrument-service` | 8001 | 8000 | 2026-06-04 | Host port 8001 due to LibreNMS conflict on 8000 |
+| Fitness Tracker | Flask + MariaDB | ✅ Running | fitness-tracker | `fitness-tracker` | — | 5000 | — | API auth via X-API-Key (Item 3) |
+| Bench Instrument Service | FastAPI | ✅ Live | bench-instrument-service | `bench-instrument-service` | 8001 | 8000 | 2026-06-04 | API auth via X-API-Key (Item 3) |
 | Grafana | Grafana OSS | ✅ Running | ad-hoc | `grafana` | — | 3000 | — | Needs formalising |
 | Prometheus | Prometheus | ✅ Running | ad-hoc | `prometheus` | — | 9090 | — | Needs formalising |
 | LibreNMS | LibreNMS | ✅ Running | ad-hoc | `librenms` | 8000 | 8080 | — | SNMP monitoring |
@@ -658,11 +659,46 @@ Pre-requisites before cutting over:
 
 ---
 
+## 14. Security Hardening (Phase 0)
+
+Phase 0 is a security remediation sprint completed in June 2026, addressing 21 findings (3 critical, 6 high, 7 medium, 5 low) from a full security scan of InternalWebServer and fitness-tracker.
+
+### Completed items
+
+**Item 1 — SSL key rotation (Critical)**  
+Leaked mkcert private key scrubbed from 299 commits of InternalWebServer git history. New certificate generated. `ssl/` directory gitignored. `docker-compose.dev.yml` retired.
+
+**Item 2 — Purge hardcoded secrets (High)**  
+Hardcoded DB credentials removed from `deploy-to-prod.sh`, `networkMonitoring.md`, and all config fallbacks. `.env.example` updated with `change_me_*` placeholders. All three affected passwords rotated. Server-side `.env` files created at `~/web_server/.env` and `~/services/fitness-tracker/.env`.
+
+**Item 3 — API authentication (High)**  
+`X-API-Key` header authentication added to both services:
+- `fitness-tracker`: `require_api_key` decorator on all 19 API routes; key injected server-side into HTML
+- `bench-instrument-service`: `verify_api_key` FastAPI dependency applied at router level
+- `/health` endpoints exempt on both services (Docker healthcheck compatibility)
+- Keys stored in server-side `.env` files, never in version control
+
+See [docs/FRAMEWORKS.md](FRAMEWORKS.md) for details on how each framework implements authentication.
+
+### Remaining items
+
+| Item | Description | Priority |
+|---|---|---|
+| 4 | Restrict CORS | High |
+| 5 | Lock down dev/debug exposure | Medium |
+| 6 | Harden prod NGINX headers/TLS | Medium |
+| 7 | Stop leaking error detail | Medium |
+| 8 | Monitoring/SNMP hardening | Medium |
+| 9 | SSH host-key verification | Low |
+| 10 | Cleanup (curl in container, tmp files, pin Docker tags) | Low |
+| 11 | Verify each finding against current code | Ongoing |
+
+---
+
 ## Appendix: Known Issues to Resolve
 
 | Issue | Impact | Resolution |
 |---|---|---|
-| `/home/andrew/web_server` is not a git repo | Deployments require SCP; no rollback | Migrate to git-checkout deploy in Phase 1–3 |
 | Two NGINX containers (`nginx-proxy` + `nginx-prod`) | Unclear which is authoritative | Rationalise to single container during Fitness Tracker extraction |
 | Christmas Tree MQTT broker IP hardcoded as `192.168.2.21` | May not reach broker | Verify correct IP is `192.168.2.10`; fix in firmware |
 | Grafana, Prometheus, etc. exposed on raw ports | No SSL, no access control | Resolved in Phase 2 |
