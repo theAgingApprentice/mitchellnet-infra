@@ -25,7 +25,7 @@ All services are reachable under `https://mitchellnet.local` via the NGINX rever
 | Service | URL | Repo | Status |
 |---|---|---|---|
 | Dashboard | `https://mitchellnet.local/` | [InternalWebServer](https://github.com/theAgingApprentice/InternalWebServer) | Live |
-| Fitness Tracker | `https://mitchellnet.local/fitness/` | [fitness-tracker](https://github.com/theAgingApprentice/fitness-tracker) | Extracting |
+| Fitness Tracker | `https://mitchellnet.local/fitness/` | [fitness-tracker](https://github.com/theAgingApprentice/fitness-tracker) | Live |
 | Bench Instrument Service | `https://mitchellnet.local/api/bench/` | [bench-instrument-service](https://github.com/theAgingApprentice/bench-instrument-service) | Live (deployed 4 June 2026) |
 | Grafana | `https://mitchellnet.local/grafana/` | [mitchellnet-monitoring](https://github.com/theAgingApprentice/mitchellnet-monitoring) | Planned |
 | Prometheus | `https://mitchellnet.local/prometheus/` | [mitchellnet-monitoring](https://github.com/theAgingApprentice/mitchellnet-monitoring) | Planned |
