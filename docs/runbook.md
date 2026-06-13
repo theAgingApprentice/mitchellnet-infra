@@ -264,3 +264,26 @@ location /fitness/ {
 ```
 
 This pattern must be followed for every `location {}` block in both `prod.conf` and `000-bareip.conf`. Missing one block means that location sends no security headers at all — no error is logged and the headers silently disappear.
+
+---
+
+## Stop Leaking Error Detail (Phase 0, Item 7)
+
+**Date completed:** 2026-06-13  
+**Repos changed:** InternalWebServer, fitness-tracker, bench-instrument-service
+
+This phase eliminated error responses that leaked internal implementation detail — NGINX version strings, raw exception messages, database error text, and internal hostnames — from all services that face the network.
+
+### InternalWebServer
+
+- The `nginx-prod` container now mounts the same custom `nginx/nginx.conf` as `nginx-proxy`, so `server_tokens off` applies to both containers. The NGINX version number no longer appears in error pages from either container.
+
+### fitness-tracker
+
+- Added global Flask error handlers for 400, 404, 405, and 500 in `app/app.py`. All return a clean JSON body (`{"error": "..."}`) instead of the default Werkzeug HTML error pages.
+- Replaced all `'error': str(e)` patterns in `app/routes/api_routes.py` with `'error': 'Internal server error'`. Raw exception text — including database errors and stack traces — is no longer returned to clients.
+- Added server-side exception logging to `app/routes/api_routes.py`. Exceptions are now recorded with full traceback via `logger.error(..., exc_info=True)`.
+
+### bench-instrument-service
+
+- In `app/dependencies.py`, suppressed three error responses that leaked internal detail: instrument driver names, instrument IP addresses, and raw exception strings. All three now return the generic message `"Instrument unavailable"` to the client and log the real detail server-side.
