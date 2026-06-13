@@ -209,3 +209,58 @@ The InternalWebServer repo has two separate NGINX server blocks in two separate 
 When adding a new service location block (e.g. `/fitness/`, `/api/bench/`), it must be added to **both** files. If it is only added to `prod.conf`, the service will work via `mitchellnet.local` but return 404 via the IP address — and vice versa. This mistake is not obvious and is very hard to debug because NGINX, Flask, and the deploy pipeline all appear correct.
 
 Any time a new service is onboarded via `aaNewService` or manually, verify both files contain the location block before closing the task.
+
+---
+
+## NGINX TLS and Security Header Hardening (Phase 0, Item 6)
+
+**Date completed:** 2026-06-13  
+**Repo changed:** InternalWebServer
+
+This phase added TLS hardening and HTTP security headers to the NGINX reverse proxy. The changes apply to all server blocks in both `prod.conf` and `000-bareip.conf`.
+
+### New files
+
+| File | Purpose |
+| --- | --- |
+| `nginx/nginx.conf` | Overrides the stock image default; adds `server_tokens off` |
+| `nginx/conf.d/ssl-params.conf` | TLS hardening: TLSv1.2+ only, strong cipher suite, session config |
+| `nginx/conf.d/security-headers.conf` | Five security headers, included in every `location {}` block |
+
+### Files modified
+
+- `nginx/conf.d/prod.conf` — added `include conf.d/ssl-params.conf;` in the SSL server block; added `include conf.d/security-headers.conf;` in every `location {}` block
+- `nginx/conf.d/000-bareip.conf` — same changes as `prod.conf`
+- `docker-compose.yml` — added volume mount to inject the custom `nginx/nginx.conf` into the container
+
+### Security headers applied
+
+| Header | Value |
+| --- | --- |
+| `Strict-Transport-Security` | `max-age=63072000` |
+| `X-Frame-Options` | `SAMEORIGIN` |
+| `X-Content-Type-Options` | `nosniff` |
+| `Referrer-Policy` | `no-referrer-when-downgrade` |
+| `Permissions-Policy` | `geolocation=(), microphone=(), camera=()` |
+
+TLS 1.0 and 1.1 are disabled. Only TLS 1.2 and 1.3 are accepted.
+
+Content-Security-Policy (CSP) was intentionally omitted — it needs per-site tuning due to SSI, multiple upstreams, and inline scripts.
+
+### WARNING: add_header does NOT inherit from parent blocks
+
+> **CRITICAL: `add_header` directives do not inherit from parent blocks if the child block contains any `add_header` of its own.**
+
+In NGINX, if a `location {}` block contains any `add_header` directive, all `add_header` directives from the enclosing `server {}` or `http {}` block are silently ignored for that location. Headers set at a higher level are completely dropped.
+
+**Solution:** Include security headers explicitly in every `location {}` block via a shared include file:
+
+```nginx
+location /fitness/ {
+    proxy_pass http://fitness-tracker:5000/;
+    proxy_http_version 1.1;
+    include conf.d/security-headers.conf;
+}
+```
+
+This pattern must be followed for every `location {}` block in both `prod.conf` and `000-bareip.conf`. Missing one block means that location sends no security headers at all — no error is logged and the headers silently disappear.
