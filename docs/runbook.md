@@ -287,3 +287,36 @@ This phase eliminated error responses that leaked internal implementation detail
 ### bench-instrument-service
 
 - In `app/dependencies.py`, suppressed three error responses that leaked internal detail: instrument driver names, instrument IP addresses, and raw exception strings. All three now return the generic message `"Instrument unavailable"` to the client and log the real detail server-side.
+
+---
+
+## Monitoring/SNMP Hardening (Phase 0, Item 8)
+
+**Date completed:** 2026-06-14  
+**Config files:** `~/network-monitoring/` and `~/monitoring/` on InternalWebServer (to be captured in git under Item 17 — mitchellnet-monitoring repo)
+
+### Changes made
+
+**Port binding**  
+All monitoring ports are now bound to `127.0.0.1` so they are not reachable from the network:
+
+| Service | Port |
+| --- | --- |
+| Prometheus | 9090 |
+| Grafana | 3000 |
+| Node Exporter | 9100 |
+| Blackbox Exporter | 9115 |
+| InfluxDB | 8086 |
+
+**Credential rotation**  
+Grafana and InfluxDB credentials were rotated and are stored in `~/web_server/.env` on the server. They are not in version control.
+
+**Orphan container removed**  
+The `snmp-exporter` container had no running scrape config pointing at it and was removed.
+
+**Blackbox scrape target fix**  
+The blackbox scrape target was corrected to use container DNS (service name) rather than a bare IP, so it resolves correctly inside the Docker network.
+
+### Note on git capture
+
+The live config files for the monitoring stack (`~/network-monitoring/` and `~/monitoring/`) exist only on the server. They will be committed to a dedicated `mitchellnet-monitoring` repository as part of Item 17.
