@@ -680,15 +680,21 @@ Hardcoded DB credentials removed from `deploy-to-prod.sh`, `networkMonitoring.md
 
 See [docs/FRAMEWORKS.md](FRAMEWORKS.md) for details on how each framework implements authentication.
 
+**Item 6 — Harden prod NGINX headers/TLS (Medium)**  
+TLS hardened to 1.2+ with a strong cipher suite. Five security headers applied via a shared include in every `location {}` block in `prod.conf` and `000-bareip.conf`. Custom `nginx.conf` added to suppress server version tokens. See [docs/runbook.md](runbook.md#nginx-tls-and-security-header-hardening-phase-0-item-6) for details.
+
+**Item 7 — Stop leaking error detail (Medium)**  
+NGINX version strings suppressed (`server_tokens off` on all containers). Flask error handlers added to fitness-tracker; raw exception strings replaced with generic messages and logged server-side. bench-instrument-service suppresses driver names, IPs, and exception strings from all error responses. See [docs/runbook.md](runbook.md#stop-leaking-error-detail-phase-0-item-7) for details.
+
+**Item 8 — Monitoring/SNMP hardening (Medium)**  
+All monitoring ports (9090, 3000, 9100, 9115, 8086) bound to `127.0.0.1`. Grafana and InfluxDB credentials rotated and stored in `~/web_server/.env`. Orphan `snmp-exporter` container removed. Blackbox scrape target corrected to use container DNS. Config files in `~/network-monitoring/` and `~/monitoring/` on the server — to be captured in git under Item 17 (mitchellnet-monitoring repo). See [docs/runbook.md](runbook.md#monitoringsnmp-hardening-phase-0-item-8) for details.
+
 ### Remaining items
 
 | Item | Description | Priority |
 |---|---|---|
 | 4 | Restrict CORS | High |
 | 5 | Lock down dev/debug exposure | Medium |
-| 6 | Harden prod NGINX headers/TLS | Medium |
-| 7 | Stop leaking error detail | Medium |
-| 8 | Monitoring/SNMP hardening | Medium |
 | 9 | SSH host-key verification | Low |
 | 10 | Cleanup (curl in container, tmp files, pin Docker tags) | Low |
 | 11 | Verify each finding against current code | Ongoing |
