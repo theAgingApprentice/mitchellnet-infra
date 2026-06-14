@@ -9,7 +9,7 @@
 
 | Service | Framework | Why |
 |---|---|---|
-| `fitness-tracker` | Flask | Simple CRUD app with HTML frontend; chosen when the app was first built for minimal complexity |
+| `fitness-tracker` | Flask | Simple CRUD (Create, Read, Update, Delete) app with HTML frontend; chosen when the app was first built for minimal complexity |
 | `bench-instrument-service` | FastAPI | Instrument control API requiring async support, automatic OpenAPI docs, and strict request/response validation |
 | `mitchellnet-device-registry` | FastAPI | New build; follows the FastAPI standard established by BIS |
 
@@ -30,7 +30,7 @@ There is no plan to migrate fitness-tracker to FastAPI. The cost of migration ou
 ## Flask — fitness-tracker
 
 ### What it is
-Flask is a lightweight WSGI web framework. It provides routing, request handling, and response generation with minimal built-in structure. Everything else — validation, serialisation, documentation — is added by the developer.
+Flask is a lightweight WSGI (Web Server Gateway Interface) web framework. It provides routing, request handling, and response generation with minimal built-in structure. Everything else — validation, serialisation, documentation — is added by the developer.
 
 ### How fitness-tracker uses it
 ```
@@ -65,7 +65,7 @@ app/
 ## FastAPI — bench-instrument-service
 
 ### What it is
-FastAPI is a modern ASGI web framework built on Starlette and Pydantic. It generates OpenAPI documentation automatically, validates request and response data against Pydantic models, and supports native async/await.
+FastAPI is a modern ASGI (Asynchronous Server Gateway Interface) web framework built on Starlette and Pydantic. It generates OpenAPI documentation automatically, validates request and response data against Pydantic models, and supports native async/await.
 
 ### How BIS uses it
 ```
