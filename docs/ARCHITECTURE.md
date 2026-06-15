@@ -630,12 +630,15 @@ When the DMZ Pi is added, it becomes a second host in `mitchellnet-infra`. Servi
 
 ### Phase 4 — Bench Instrument Service (new build)
 
-Detailed implementation plan to be written separately. High-level:
+**Status: COMPLETE** — All three BIS phases delivered and live in production as of 15 June 2026.
 
-1. Create `bench-instrument-service` repo
-2. Implement FastAPI with LXI/SCPI instrument drivers
-3. Deploy container, add NGINX routing for `/api/bench/`
-4. Write instrument abstraction layer per the BIS Architecture & Requirements document
+| Phase | Description | Completed |
+|---|---|---|
+| BIS Phase 1 | Core service — four instrument drivers, full REST API, Docker deploy, CI/CD | 4 June 2026 |
+| BIS Phase 2 | Session management — exclusive instrument reservation, session timeout, keepalive | 8 June 2026 |
+| BIS Phase 3 | Enhancements — status dashboard, `bench_client.py` Python client library, webhooks | 15 June 2026 |
+
+BIS is accessible at `https://mitchellnet.local/api/bench/`. The status dashboard is at `https://mitchellnet.local/api/bench/` (root). Full API reference in [`bench-instrument-service/README.md`](../bench-instrument-service/README.md).
 
 ### Phase 5 — IoT Device Registry (new build)
 
