@@ -46,7 +46,7 @@ From these constraints, three rules govern all design decisions:
 
 ## 2. Repository Strategy
 
-Seven repositories, each with a single clear responsibility.
+Seven repositories, each with a single clear responsibility. When planning a new service repository, consult [docs/SERVICE-TYPES.md](SERVICE-TYPES.md) to select the correct scaffold type before starting work.
 
 ### `InternalWebServer` (existing)
 The front door of MitchellNET. Owns:
@@ -593,6 +593,8 @@ When the DMZ Pi is added, it becomes a second host in `mitchellnet-infra`. Servi
 ---
 
 ## 13. Implementation Roadmap
+
+> **Before starting any new service phase:** consult [docs/SERVICE-TYPES.md](SERVICE-TYPES.md) to select the correct scaffold type, then run `aaNewService <repo-name> --type <type>` to scaffold the repo.
 
 ### Phase 1 — Foundation (do first, no service disruption)
 
