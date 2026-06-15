@@ -338,9 +338,4 @@ Audited all repos and the server for `StrictHostKeyChecking=no`. The only hit wa
 
 `html/prod/tmp.txt` (a zero-byte placeholder file) was deleted in the same PR.
 
-**Remaining Item 10 work:**
-
-- `.DS_Store` — add to `.gitignore` and purge from all repos
-- Pin Docker image tags off `:latest` in all `docker-compose.yml` files
-- Block `version.json` from external network access (MEDIUM-6)
-- Verify no `curl` installed unnecessarily inside containers
+All Item 10 sub-tasks completed. See InternalWebServer PRs #152–#155 and bench-instrument-service PR #11.
