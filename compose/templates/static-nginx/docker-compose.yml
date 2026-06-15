@@ -1,0 +1,12 @@
+services:
+  # TEMPLATE: replace SERVICE_NAME with your actual service name
+  SERVICE_NAME:
+    build: .
+    container_name: SERVICE_NAME
+    restart: unless-stopped
+    networks:
+      - mitchellnet
+
+networks:
+  mitchellnet:
+    external: true
