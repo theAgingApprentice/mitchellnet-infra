@@ -117,9 +117,11 @@ Personal Mac Studio developer environment tools live in the separate [macstudio-
 
 | Location | Scripts | Purpose |
 |---|---|---|
-| `mitchellnet-infra/scripts/` | `aaGitPromote`, `aaGitCleanupBranches`, `aaRegisterRunner`, `aaInstall` | MitchellNET workflow tools — installed on both Mac Studio and Ubuntu server |
+| `mitchellnet-infra/scripts/` | `aaGitPromote`, `aaGitCleanupBranches`, `aaRegisterRunner`, `aaInstall`, `aaNewService` | MitchellNET workflow tools — installed on both Mac Studio and Ubuntu server |
 | `macstudio-setup/scripts/` | `aaCopyMotd`, `aaCopyScripts`, `aaHelp`, `aaGoMqtt`, `install.sh` | Personal Mac Studio dev environment tools |
 | `mitchellnet-iot/` | `aaMqtt` | IoT/MQTT tools (future) |
+
+`aaNewService` scaffolds a new service repo end-to-end: GitHub repo creation, branch protection, self-hosted runner registration, template file scaffolding, and a service-type-specific checklist. See [docs/SERVICE-TYPES.md](SERVICE-TYPES.md) for the full list of supported types.
 
 ---
 
@@ -661,43 +663,29 @@ Pre-requisites before cutting over:
 
 ## 14. Security Hardening (Phase 0)
 
-Phase 0 is a security remediation sprint completed in June 2026, addressing 21 findings (3 critical, 6 high, 7 medium, 5 low) from a full security scan of InternalWebServer and fitness-tracker.
+**Status: COMPLETE** — All 10 items completed June 2026.
 
-### Completed items
+Phase 0 addressed 21 findings (3 critical, 6 high, 7 medium, 5 low) from a full security
+scan of InternalWebServer and fitness-tracker. All changes captured in mitchellnet-infra
+PRs #19–#22, InternalWebServer PRs #152–#155, and BIS PR #11.
 
-**Item 1 — SSL key rotation (Critical)**  
-Leaked mkcert private key scrubbed from 299 commits of InternalWebServer git history. New certificate generated. `ssl/` directory gitignored. `docker-compose.dev.yml` retired.
-
-**Item 2 — Purge hardcoded secrets (High)**  
-Hardcoded DB credentials removed from `deploy-to-prod.sh`, `networkMonitoring.md`, and all config fallbacks. `.env.example` updated with `change_me_*` placeholders. All three affected passwords rotated. Server-side `.env` files created at `~/web_server/.env` and `~/services/fitness-tracker/.env`.
-
-**Item 3 — API authentication (High)**  
-`X-API-Key` header authentication added to both services:
-- `fitness-tracker`: `require_api_key` decorator on all 19 API routes; key injected server-side into HTML
-- `bench-instrument-service`: `verify_api_key` FastAPI dependency applied at router level
-- `/health` endpoints exempt on both services (Docker healthcheck compatibility)
-- Keys stored in server-side `.env` files, never in version control
-
-See [docs/FRAMEWORKS.md](FRAMEWORKS.md) for details on how each framework implements authentication.
-
-**Item 6 — Harden prod NGINX headers/TLS (Medium)**  
-TLS hardened to 1.2+ with a strong cipher suite. Five security headers applied via a shared include in every `location {}` block in `prod.conf` and `000-bareip.conf`. Custom `nginx.conf` added to suppress server version tokens. See [docs/runbook.md](runbook.md#nginx-tls-and-security-header-hardening-phase-0-item-6) for details.
-
-**Item 7 — Stop leaking error detail (Medium)**  
-NGINX version strings suppressed (`server_tokens off` on all containers). Flask error handlers added to fitness-tracker; raw exception strings replaced with generic messages and logged server-side. bench-instrument-service suppresses driver names, IPs, and exception strings from all error responses. See [docs/runbook.md](runbook.md#stop-leaking-error-detail-phase-0-item-7) for details.
-
-**Item 8 — Monitoring/SNMP hardening (Medium)**  
-All monitoring ports (9090, 3000, 9100, 9115, 8086) bound to `127.0.0.1`. Grafana and InfluxDB credentials rotated and stored in `~/web_server/.env`. Orphan `snmp-exporter` container removed. Blackbox scrape target corrected to use container DNS. Config files in `~/network-monitoring/` and `~/monitoring/` on the server — to be captured in git under Item 17 (mitchellnet-monitoring repo). See [docs/runbook.md](runbook.md#monitoringsnmp-hardening-phase-0-item-8) for details.
-
-### Remaining items
-
-| Item | Description | Priority |
+| Item | Description | Status |
 |---|---|---|
-| 4 | Restrict CORS | High |
-| 5 | Lock down dev/debug exposure | Medium |
-| 9 | SSH host-key verification | Low |
-| 10 | Cleanup (curl in container, tmp files, pin Docker tags) | Low |
-| 11 | Verify each finding against current code | Ongoing |
+| 1 | SSL key rotation — leaked mkcert key scrubbed from 299 commits of history | ✅ Done |
+| 2 | Purge hardcoded secrets from deploy scripts, docs, and config fallbacks | ✅ Done |
+| 3 | API authentication (X-API-Key) on fitness-tracker and BIS | ✅ Done |
+| 4 | Restrict CORS | ✅ Done |
+| 5 | Lock down dev/debug exposure | ✅ Done |
+| 6 | Harden prod NGINX headers/TLS (TLS 1.2+, strong ciphers, security headers) | ✅ Done |
+| 7 | Stop leaking error detail (NGINX version strings, Flask/FastAPI error responses) | ✅ Done |
+| 8 | Monitoring/SNMP hardening (ports bound to 127.0.0.1, credentials rotated) | ✅ Done |
+| 9 | SSH host-key verification audit (`StrictHostKeyChecking=no` removed) | ✅ Done |
+| 10 | Cleanup (tmp.txt, .DS_Store, curl removed from BIS container, version.json blocked) | ✅ Done |
+
+**Note:** Monitoring stack config files (`~/network-monitoring/`, `~/monitoring/`) are on
+the server but not yet in git. Item 17 (mitchellnet-monitoring repo) will capture them.
+
+See [docs/runbook.md](runbook.md) for implementation details on each item.
 
 ---
 

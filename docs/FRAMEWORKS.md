@@ -210,6 +210,7 @@ Flask remains appropriate only for maintaining fitness-tracker. All new services
 
 ## See Also
 
+- [SERVICE-TYPES.md](SERVICE-TYPES.md) — supported scaffold types, excluded types, and when to use each; consult this before planning any new service
 - [ARCHITECTURE.md](ARCHITECTURE.md) — full system design including service inventory and roadmap
 - [bench-instrument-service/docs/ARCHITECTURE.md](../../bench-instrument-service/docs/ARCHITECTURE.md) — BIS-specific design
 - [bench-instrument-service/docs/BIS_Implementation_Blueprint.md](../../bench-instrument-service/docs/BIS_Implementation_Blueprint.md) — full BIS implementation reference

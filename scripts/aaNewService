@@ -1,40 +1,124 @@
 #!/usr/bin/env bash
+# aaNewService — scaffold a new MitchellNET service repo.
+# Usage: aaNewService <repo-name> [--type <type>]
+# Types: python-fastapi, python-flask, python-flask-db, static-nginx
+# See mitchellnet-infra/docs/SERVICE-TYPES.md for full type reference.
 set -euo pipefail
 
 REPO_NAME="${1:-}"
+SERVICE_TYPE=""
+RUNNER_VERSION="2.335.1"
+GITHUB_ORG="theAgingApprentice"
+INFRA_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TEMPLATE_DIR="${INFRA_REPO_DIR}/compose/templates"
+NEW_REPO_BASE="${HOME}/Documents/visualStudioCode/newProjectStructure"
 
+# --- Parse arguments ---
 if [[ -z "$REPO_NAME" ]]; then
-  echo "Usage: aaNewService <repo-name>"
-  echo "Example: aaNewService fitness-tracker"
-  exit 1
+    echo "Usage: aaNewService <repo-name> [--type <type>]"
+    echo ""
+    echo "  repo-name   Required. GitHub repo name (e.g. my-new-service)."
+    echo "  --type      Optional. One of: python-fastapi, python-flask, python-flask-db, static-nginx"
+    echo "              If omitted, you will be prompted to choose."
+    echo ""
+    echo "See mitchellnet-infra/docs/SERVICE-TYPES.md for full type reference."
+    exit 1
 fi
 
+shift
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --type)
+            SERVICE_TYPE="${2:-}"
+            shift 2
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# --- Validate or prompt for service type ---
+VALID_TYPES=("python-fastapi" "python-flask" "python-flask-db" "static-nginx")
+
+validate_type() {
+    for t in "${VALID_TYPES[@]}"; do
+        [[ "$t" == "$1" ]] && return 0
+    done
+    return 1
+}
+
+if [[ -z "$SERVICE_TYPE" ]]; then
+    echo ""
+    echo "Select a service type:"
+    echo "  1) python-fastapi   — FastAPI + Uvicorn, no DB (default for new services)"
+    echo "  2) python-flask     — Flask + Gunicorn, no DB"
+    echo "  3) python-flask-db  — Flask + Gunicorn + MariaDB sidecar"
+    echo "  4) static-nginx     — Static files served by NGINX, no app container"
+    echo ""
+    echo "See mitchellnet-infra/docs/SERVICE-TYPES.md for guidance on which to choose."
+    echo ""
+    read -rp "Enter number or type name [1]: " TYPE_INPUT
+    TYPE_INPUT="${TYPE_INPUT:-1}"
+    case "$TYPE_INPUT" in
+        1|python-fastapi)   SERVICE_TYPE="python-fastapi" ;;
+        2|python-flask)     SERVICE_TYPE="python-flask" ;;
+        3|python-flask-db)  SERVICE_TYPE="python-flask-db" ;;
+        4|static-nginx)     SERVICE_TYPE="static-nginx" ;;
+        *)
+            echo "Invalid selection: $TYPE_INPUT"
+            echo "Valid types: ${VALID_TYPES[*]}"
+            exit 1
+            ;;
+    esac
+fi
+
+if ! validate_type "$SERVICE_TYPE"; then
+    echo "Unknown service type: $SERVICE_TYPE"
+    echo "Valid types: ${VALID_TYPES[*]}"
+    echo "See mitchellnet-infra/docs/SERVICE-TYPES.md for details."
+    exit 1
+fi
+
+TEMPLATE_PATH="${TEMPLATE_DIR}/${SERVICE_TYPE}"
+if [[ ! -d "$TEMPLATE_PATH" ]]; then
+    echo "Template directory not found: $TEMPLATE_PATH"
+    echo "Check that mitchellnet-infra is up to date."
+    exit 1
+fi
+
+# --- Banner ---
 echo ""
 echo "=================================================="
-echo " MitchellNET New Service Setup: $REPO_NAME"
+echo " MitchellNET New Service Setup"
+echo "  Repo:  ${REPO_NAME}"
+echo "  Type:  ${SERVICE_TYPE}"
 echo "=================================================="
 echo ""
 
-# Step 1 — Create the GitHub repo
+# --- Step 1 — Create the GitHub repo ---
 echo "Step 1 — Create the GitHub repository"
 echo "--------------------------------------"
 echo "Create a new PUBLIC repository at:"
 echo ""
-echo "  https://github.com/theAgingApprentice/${REPO_NAME}"
+echo "  https://github.com/${GITHUB_ORG}/${REPO_NAME}"
 echo ""
-echo "Make sure it is set to PUBLIC."
+echo "Settings:"
+echo "  - Visibility: Public"
+echo "  - Do NOT initialise with README, .gitignore, or licence (repo will be pushed from local)"
 echo ""
 read -rp "Press Enter when done..."
 echo ""
 
-# Step 2 — Branch protection
+# --- Step 2 — Branch protection ---
 echo "Step 2 — Add branch protection for main"
 echo "----------------------------------------"
 echo "Go to:"
 echo ""
-echo "  https://github.com/theAgingApprentice/${REPO_NAME}/settings/branches"
+echo "  https://github.com/${GITHUB_ORG}/${REPO_NAME}/settings/branches"
 echo ""
-echo "Add a classic branch protection rule for the pattern: main"
+echo "Add a classic branch protection rule for pattern: main"
 echo ""
 echo "Required settings:"
 echo "  [x] Require a pull request before merging"
@@ -45,68 +129,162 @@ echo ""
 read -rp "Press Enter when done..."
 echo ""
 
-# Step 3 — Runner registration
+# --- Step 3 — Runner registration ---
 echo "Step 3 — Register the GitHub Actions self-hosted runner"
 echo "--------------------------------------------------------"
-echo "On the Ubuntu server, run the following commands:"
+echo "On the Ubuntu server (192.168.2.10), run:"
 echo ""
 echo "  mkdir -p /home/andrew/actions-runner-${REPO_NAME}"
 echo "  cd /home/andrew/actions-runner-${REPO_NAME}"
 echo ""
-echo "  curl -o actions-runner-linux-x64-2.319.1.tar.gz -L \\"
-echo "    https://github.com/actions/runner/releases/download/v2.319.1/actions-runner-linux-x64-2.319.1.tar.gz"
+echo "  curl -o actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz -L \\"
+echo "    https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
 echo ""
-echo "  tar xzf ./actions-runner-linux-x64-2.319.1.tar.gz"
+echo "  tar xzf ./actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
 echo ""
 echo "  ./config.sh \\"
-echo "    --url https://github.com/theAgingApprentice/${REPO_NAME} \\"
+echo "    --url https://github.com/${GITHUB_ORG}/${REPO_NAME} \\"
 echo "    --token <YOUR_RUNNER_TOKEN>"
 echo ""
 echo "Get the runner token from:"
-echo "  https://github.com/theAgingApprentice/${REPO_NAME}/settings/actions/runners/new"
+echo "  https://github.com/${GITHUB_ORG}/${REPO_NAME}/settings/actions/runners/new"
 echo ""
-echo "--- Service installation ---"
-echo ""
-echo "Run these from inside the runner directory."
-echo "The runner will not start automatically until you do."
+echo "Then install and start as a systemd service:"
 echo ""
 echo "  sudo ./svc.sh install"
 echo "  sudo ./svc.sh start"
 echo ""
-echo "Alternatively, run: aaRegisterRunner ${REPO_NAME}"
+echo "Verify it is running:"
+echo "  sudo systemctl status actions.runner.${GITHUB_ORG}-${REPO_NAME}.*"
+echo ""
+echo "Note: The runner version above (${RUNNER_VERSION}) is the bootstrap baseline."
+echo "GitHub will auto-update the runner after first registration."
 echo ""
 read -rp "Press Enter when done..."
 echo ""
 
-# Step 4 — Clone and open locally
-echo "Step 4 — Clone the repo and open in VS Code"
-echo "--------------------------------------------"
+# --- Step 4 — Clone and scaffold ---
+echo "Step 4 — Clone repo and apply ${SERVICE_TYPE} template"
+echo "--------------------------------------------------------"
 echo "On your Mac Studio, run:"
 echo ""
-echo "  cd ~/Documents/visualStudioCode/newProjectStructure"
-echo "  git clone https://github.com/theAgingApprentice/${REPO_NAME}.git"
-echo "  code ${REPO_NAME}"
+echo "  cd ${NEW_REPO_BASE}"
+echo "  git clone https://github.com/${GITHUB_ORG}/${REPO_NAME}.git"
 echo ""
 read -rp "Press Enter when done..."
 echo ""
 
-# Step 5 — Checklist summary
-echo "Step 5 — Checklist summary"
+REPO_PATH="${NEW_REPO_BASE}/${REPO_NAME}"
+if [[ ! -d "$REPO_PATH" ]]; then
+    echo "Repo directory not found at: $REPO_PATH"
+    echo "Please clone the repo first, then press Enter."
+    read -rp "Press Enter when ready..."
+fi
+
+echo "Copying ${SERVICE_TYPE} template into ${REPO_PATH}..."
+echo ""
+
+# Copy template files, preserving directory structure including hidden files
+cp -r "${TEMPLATE_PATH}/." "${REPO_PATH}/"
+
+echo "Template files copied. TEMPLATE markers need replacing in:"
+echo ""
+grep -rl "SERVICE_NAME\|change_me" "${REPO_PATH}" 2>/dev/null | sed "s|${REPO_PATH}/||" | sort | while read -r f; do
+    echo "  $f"
+done
+echo ""
+echo "Replace SERVICE_NAME with: ${REPO_NAME}"
+echo "Replace change_me_* values with real secrets (generate with: openssl rand -hex 32)"
+echo ""
+read -rp "Press Enter when done replacing TEMPLATE markers..."
+echo ""
+
+# --- Step 5 — Open in VS Code ---
+echo "Step 5 — Open in VS Code"
+echo "-------------------------"
+echo "Run:"
+echo ""
+echo "  code ${REPO_PATH}"
+echo ""
+read -rp "Press Enter when done..."
+echo ""
+
+# --- Step 6 — Add GitHub Actions secrets ---
+echo "Step 6 — Add GitHub Actions secrets"
+echo "-------------------------------------"
+echo "Go to:"
+echo ""
+echo "  https://github.com/${GITHUB_ORG}/${REPO_NAME}/settings/secrets/actions"
+echo ""
+
+case "$SERVICE_TYPE" in
+    python-fastapi|python-flask|python-flask-db)
+        echo "Add these repository secrets:"
+        echo "  API_KEY       — same value as API_KEY in your server .env file"
+        ;;
+    static-nginx)
+        echo "No secrets required for static-nginx services."
+        echo "(Add secrets here if your deploy workflow needs them in future.)"
+        ;;
+esac
+
+echo ""
+read -rp "Press Enter when done..."
+echo ""
+
+# --- Step 7 — Checklist summary ---
+echo "Step 7 — Checklist summary"
 echo "--------------------------"
 echo ""
 echo "Completed:"
 echo "  [x] GitHub repo created (public)"
 echo "  [x] Branch protection rule added for main"
 echo "  [x] Self-hosted runner registered and running"
-echo "  [x] Repo cloned locally and opened in VS Code"
+echo "  [x] Repo cloned and ${SERVICE_TYPE} template applied"
+echo "  [x] TEMPLATE markers replaced"
+echo "  [x] Opened in VS Code"
+echo "  [x] GitHub Actions secrets added"
 echo ""
-echo "Still needs to be done manually:"
-echo "  [ ] Add Dockerfile"
-echo "  [ ] Add docker-compose.yml"
-echo "  [ ] Add .github/workflows/deploy.yml"
-echo "        (use bench-instrument-service as the reference pattern)"
-echo "  [ ] Add .env.example"
-echo "  [ ] Add README.md"
+echo "Still to do (service-specific):"
+
+case "$SERVICE_TYPE" in
+    python-fastapi)
+        echo "  [ ] Write app/main.py (FastAPI app)"
+        echo "  [ ] Write requirements.txt"
+        echo "  [ ] Write tests/test_health.py (minimum: health endpoint test)"
+        echo "  [ ] Add NGINX location block in InternalWebServer"
+        echo "  [ ] Create .env on server at ~/services/${REPO_NAME}/.env"
+        echo "  [ ] Run: aaGitPromote initial-scaffold \"Add python-fastapi scaffold\""
+        ;;
+    python-flask)
+        echo "  [ ] Write app.py (Flask app)"
+        echo "  [ ] Write requirements.txt"
+        echo "  [ ] Write tests/test_health.py (minimum: health endpoint test)"
+        echo "  [ ] Add NGINX location block in InternalWebServer"
+        echo "  [ ] Create .env on server at ~/services/${REPO_NAME}/.env"
+        echo "  [ ] Run: aaGitPromote initial-scaffold \"Add python-flask scaffold\""
+        ;;
+    python-flask-db)
+        echo "  [ ] Write app.py (Flask app)"
+        echo "  [ ] Write requirements.txt"
+        echo "  [ ] Write database/init.sql (replace example schema)"
+        echo "  [ ] Write tests/test_health.py (minimum: health endpoint test)"
+        echo "  [ ] Add NGINX location block in InternalWebServer"
+        echo "  [ ] Create .env on server at ~/services/${REPO_NAME}/.env"
+        echo "  [ ] Run: aaGitPromote initial-scaffold \"Add python-flask-db scaffold\""
+        ;;
+    static-nginx)
+        echo "  [ ] Add html/ directory with at least index.html"
+        echo "  [ ] Add NGINX location block in InternalWebServer"
+        echo "  [ ] Run: aaGitPromote initial-scaffold \"Add static-nginx scaffold\""
+        ;;
+esac
+
 echo ""
-echo "Setup complete for: $REPO_NAME"
+echo "Reference:"
+echo "  Service type docs:  mitchellnet-infra/docs/SERVICE-TYPES.md"
+echo "  Framework guide:    mitchellnet-infra/docs/FRAMEWORKS.md"
+echo "  Architecture:       mitchellnet-infra/docs/ARCHITECTURE.md"
+echo ""
+echo "Setup complete for: ${REPO_NAME} (${SERVICE_TYPE})"
 echo ""

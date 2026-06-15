@@ -1,0 +1,37 @@
+services:
+  # TEMPLATE: replace SERVICE_NAME with your actual service name
+  SERVICE_NAME:
+    build: .
+    container_name: SERVICE_NAME
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - SERVICE_NAME-db
+    networks:
+      - mitchellnet
+      - SERVICE_NAME-internal
+
+  # TEMPLATE: replace SERVICE_NAME-db with your actual db container name
+  SERVICE_NAME-db:
+    image: mariadb:10.11
+    container_name: SERVICE_NAME-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - SERVICE_NAME-db-data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - SERVICE_NAME-internal
+
+volumes:
+  # TEMPLATE: replace SERVICE_NAME-db-data with your actual volume name
+  SERVICE_NAME-db-data:
+
+networks:
+  mitchellnet:
+    external: true
+  # TEMPLATE: replace SERVICE_NAME-internal with your actual internal network name
+  SERVICE_NAME-internal:
+    internal: true
