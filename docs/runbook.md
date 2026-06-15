@@ -320,3 +320,27 @@ The blackbox scrape target was corrected to use container DNS (service name) rat
 ### Note on git capture
 
 The live config files for the monitoring stack (`~/network-monitoring/` and `~/monitoring/`) exist only on the server. They will be committed to a dedicated `mitchellnet-monitoring` repository as part of Item 17.
+
+---
+
+## SSH Host-Key Verification (Phase 0, Item 9) + Cleanup partial (Item 10)
+
+**Date completed:** 2026-06-15  
+**Repo changed:** InternalWebServer (PR #152)
+
+### Item 9 — SSH host-key verification
+
+Audited all repos and the server for `StrictHostKeyChecking=no`. The only hit was `InternalWebServer/setup_ci_cd.sh` — a one-time bootstrap script written early in the project to scaffold the repo and generate the original workflow files. It was never called by CI or any other script, and the workflows it generated were long since replaced by the self-hosted runner pattern (`runs-on: self-hosted`). The live workflow (`deploy-prod.yml`) uses only local `rsync` and `docker` commands — no SSH to remote hosts.
+
+**Fix:** Deleted `setup_ci_cd.sh`. No workflow files required changes.
+
+### Item 10 — Cleanup (partial)
+
+`html/prod/tmp.txt` (a zero-byte placeholder file) was deleted in the same PR.
+
+**Remaining Item 10 work:**
+
+- `.DS_Store` — add to `.gitignore` and purge from all repos
+- Pin Docker image tags off `:latest` in all `docker-compose.yml` files
+- Block `version.json` from external network access (MEDIUM-6)
+- Verify no `curl` installed unnecessarily inside containers
