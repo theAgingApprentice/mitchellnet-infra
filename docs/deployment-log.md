@@ -4,6 +4,48 @@ A running record of first deployments, significant configuration changes, and le
 
 ---
 
+## 2026-06-16 — Item 14: Vaultwarden password manager
+
+**PRs:** vaultwarden #1–#3 | InternalWebServer #156–#157 | **Repos:** vaultwarden (new), InternalWebServer
+
+### What was deployed
+
+Self-hosted Vaultwarden (Bitwarden-compatible) password manager, LAN-only at `https://vault.mitchellnet.local/`. New dedicated repo `vaultwarden` with Docker Compose, CI/CD via self-hosted runner, and Argon2-hashed admin token.
+
+### Architecture decisions
+
+- Served on dedicated subdomain `vault.mitchellnet.local` (not a subpath) — Vaultwarden does not support subpath hosting cleanly
+- Wildcard TLS cert (`*.mitchellnet.local`) generated via `ssl/generate.sh` and deployed to replace the old non-wildcard cert
+- Data persisted in Docker named volume `vaultwarden_data`
+- Joins `mitchellnet` Docker network — nginx-proxy reaches it by container name
+
+### Issues encountered and resolutions
+
+**Subpath hosting fails with Vaultwarden**
+Initially attempted to serve at `https://mitchellnet.local/vault/`. Vaultwarden's Rocket server returns 404 for all paths when hosted behind a subpath proxy, regardless of `DOMAIN` setting. Solution: dedicated subdomain with its own NGINX server block.
+
+**Wildcard cert required for subdomain**
+Existing cert only covered `mitchellnet.local` (no wildcard). Regenerated via `bash ssl/generate.sh` in mitchellnet-infra — the script already generated `*.mitchellnet.local` but the old cert had been manually generated during Phase 0 without the wildcard SAN.
+
+**Argon2 token `$` signs mangled by Docker env_file**
+Docker Compose `env_file` interprets `$` as variable substitution, stripping parts of the Argon2 PHC string. Fix: escape all `$` as `$$` in the `.env` file. The `$$` is unescaped by Docker back to `$` when injected into the container.
+
+**ADMIN_TOKEN in `environment:` block overrides `env_file`**
+The `environment:` block in `docker-compose.yml` was overriding the `env_file` value for `ADMIN_TOKEN`. Fix: removed `ADMIN_TOKEN` from the `environment:` block entirely, letting it come only from `env_file`.
+
+**Browser caching masked successful deployment**
+After NGINX was correctly configured and the stack was serving 200 OK (confirmed via curl), the browser still showed a cached 404. Hard refresh (`Cmd+Shift+R`) resolved it.
+
+### Verification
+
+- `https://vault.mitchellnet.local/` — Vaultwarden login page ✅
+- `https://vault.mitchellnet.local/admin` — Admin panel, no plain-text token warning ✅
+- `docker ps | grep vaultwarden` — `(healthy)` ✅
+- Signups disabled (`SIGNUPS_ALLOWED=false`) ✅
+- Single registered user: Andrew Mitchell ✅
+
+---
+
 ## June 11 2026 — Phase 0 Item 3: API Authentication (fitness-tracker + bench-instrument-service)
 
 **PRs:** fitness-tracker #5, #6 | bench-instrument-service #6 | **Repos:** fitness-tracker, bench-instrument-service

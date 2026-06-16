@@ -105,6 +105,14 @@ To set up a new Mac Studio development environment:
    mkcert -install
    ```
 
+5. Add MitchellNET subdomains to `/etc/hosts`:
+
+   ```bash
+   echo "192.168.2.10 vault.mitchellnet.local" | sudo tee -a /etc/hosts
+   ```
+
+   Repeat for any other subdomains as new services are added.
+
 ---
 
 ## Ubuntu Server Rebuild
@@ -167,6 +175,29 @@ bash ssl/generate.sh
 ```
 
 Certs are written to `ssl/certs/` (git-ignored). After regeneration, restart the NGINX container so it picks up the new certificate.
+
+---
+
+## Argon2 Token Escaping in Docker env_file
+
+Docker Compose `env_file` interprets `$` as variable substitution. Argon2 PHC strings (used for Vaultwarden's `ADMIN_TOKEN`) contain multiple `$` characters and will be mangled if written literally.
+
+**Fix:** escape all `$` as `$$` in the `.env` file:
+
+```bash
+# Generate hash
+docker exec -it vaultwarden /vaultwarden hash --preset owasp
+
+# Write to .env with $$ escaping
+python3 << 'EOF'
+hash = '$argon2id$v=19$m=19456,...'  # paste your full hash here
+escaped = hash.replace('$', '$$')
+content = f'ADMIN_TOKEN={escaped}\n'
+print(content)  # verify, then write to .env
+EOF
+```
+
+Docker automatically unescapes `$$` back to `$` when injecting into the container environment.
 
 ---
 
