@@ -207,6 +207,9 @@ NGINX in `InternalWebServer` is the canonical URL map for all of MitchellNET. Al
 | `/` | Static web root | Dashboard, home page |
 | `/fitness/` | `fitness-tracker:5000` | Extracted app |
 | `/fitness/api/` | `fitness-tracker:5000/api/` | Flask API (scoped under service path) |
+| `/recipes/` | `recipes-app:5000` | Flask + MariaDB recipes app |
+| `/meal-plan/` | `recipes-app:5000` | Same container, path preserved (no trailing slash on proxy_pass) |
+| `/shopping-list/` | `recipes-app:5000` | Same container, path preserved (no trailing slash on proxy_pass) |
 | `/api/bench/` | `bench-instrument-service:8000` | BIS FastAPI |
 | `/grafana/` | `grafana:3000` | Requires Grafana subpath config |
 | `/prometheus/` | `prometheus:9090` | Internal access only |
@@ -319,6 +322,7 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 |---|---|---|---|---|---|---|---|---|
 | NGINX proxy | nginx:1.29 | ✅ Running | InternalWebServer | `nginx-proxy` | 80, 443 | 80, 443 | — | SSL termination |
 | Fitness Tracker | Flask + MariaDB | ✅ Running | fitness-tracker | `fitness-tracker` | — | 5000 | — | API auth via X-API-Key (Item 3) |
+| Recipes App | Flask + MariaDB | ✅ Running | recipes | `recipes-app` | — | 5000 | 2026-06-17 | Browse, add, edit, meal plan, shopping list |
 | Bench Instrument Service | FastAPI | ✅ Live | bench-instrument-service | `bench-instrument-service` | 8001 | 8000 | 2026-06-04 | API auth via X-API-Key (Item 3) |
 | Grafana | Grafana OSS | ✅ Running | ad-hoc | `grafana` | — | 3000 | — | Needs formalising |
 | Prometheus | Prometheus | ✅ Running | ad-hoc | `prometheus` | — | 9090 | — | Needs formalising |

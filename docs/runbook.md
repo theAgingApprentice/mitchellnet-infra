@@ -228,6 +228,64 @@ Removing the trailing slash causes NGINX to forward the full path including the 
 
 This pattern applies to every service in the NGINX routing table.
 
+### Exception: services with multiple NGINX entry points
+
+Some Flask apps are accessible via more than one NGINX location prefix. The recipes app, for example, is reachable at `/recipes/`, `/meal-plan/`, and `/shopping-list/` — all served by the same container.
+
+For the **primary prefix** (`/recipes/`), use Approach A as normal — trailing slash strips the prefix:
+
+```nginx
+location /recipes/ {
+    proxy_pass http://recipes-app:5000/;
+}
+```
+
+For **secondary prefixes** (`/meal-plan/`, `/shopping-list/`), do NOT use a trailing slash on `proxy_pass`. Instead, omit the path entirely so NGINX forwards the full path unchanged to Flask:
+
+```nginx
+location /meal-plan/ {
+    proxy_pass http://recipes-app:5000;
+}
+
+location /shopping-list/ {
+    proxy_pass http://recipes-app:5000;
+}
+```
+
+Flask then handles `/meal-plan/` and `/shopping-list/` directly as registered routes. The distinction:
+- Trailing slash (`http://service:5000/`) → NGINX strips the location prefix before forwarding
+- No path (`http://service:5000`) → NGINX forwards the full original path unchanged
+
+### WARNING: Flask `url_for` generates prefix-unaware paths
+
+Flask's `url_for()` generates paths relative to the Flask app's own route table — it has no knowledge of the NGINX prefix. For example, after saving a recipe, `url_for("recipes.detail", recipe_id=1)` generates `/1`, not `/recipes/1`. NGINX has no route for `/1` and returns 404.
+
+**Fix:** Use hard-coded absolute paths for any redirect that must include the NGINX prefix:
+
+```python
+# WRONG — generates /1, NGINX 404s
+return redirect(url_for("recipes.detail", recipe_id=r.id))
+
+# CORRECT — generates /recipes/1, NGINX routes correctly
+return redirect(f"/recipes/{r.id}")
+```
+
+This applies to all redirects after form saves, deletes, or any action that navigates away from the current prefix.
+
+### WARNING: Flask templates must use HTML links, not Markdown
+
+When generating HTML templates for Flask apps, always use HTML anchor tags. Markdown-style links render as plain text in browsers:
+
+```html
+<!-- WRONG — renders as literal text "[← Back](/recipes/)" -->
+[← Back](/recipes/)
+
+<!-- CORRECT -->
+<a href="/recipes/">← Back</a>
+```
+
+This is particularly relevant when using AI tools to generate template code — they may produce Markdown link syntax instead of HTML.
+
 ### WARNING: Location blocks must exist in BOTH NGINX config files
 
 > **CRITICAL: Every service location block must exist in BOTH nginx config files**
