@@ -1,13 +1,19 @@
 #!/bin/bash
-# Copies all scripts in scripts/ to /usr/local/bin and makes them executable.
-
+# Copies all scripts from mitchellnet-infra/scripts/ to /usr/local/bin and makes them executable.
+# Always installs from the mitchellnet-infra repo, regardless of where this script is run from.
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INFRA_REPO_DIR="${HOME}/Documents/visualStudioCode/newProjectStructure/mitchellnet-infra"
+SCRIPT_DIR="${INFRA_REPO_DIR}/scripts"
+
+if [[ ! -d "$SCRIPT_DIR" ]]; then
+    echo "ERROR: mitchellnet-infra scripts not found at: $SCRIPT_DIR"
+    echo "Check that mitchellnet-infra is cloned to the expected location."
+    exit 1
+fi
 
 echo "Installing scripts from ${SCRIPT_DIR} to /usr/local/bin..."
 echo ""
-
 for script in "$SCRIPT_DIR"/*; do
     if [ -f "$script" ]; then
         name="$(basename "$script")"
@@ -16,6 +22,5 @@ for script in "$SCRIPT_DIR"/*; do
         sudo chmod +x "/usr/local/bin/$name"
     fi
 done
-
 echo ""
 echo "Done. All scripts installed to /usr/local/bin."
