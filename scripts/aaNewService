@@ -9,8 +9,14 @@ REPO_NAME="${1:-}"
 SERVICE_TYPE=""
 RUNNER_VERSION="2.335.1"
 GITHUB_ORG="theAgingApprentice"
-INFRA_REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INFRA_REPO_DIR="${HOME}/Documents/visualStudioCode/newProjectStructure/mitchellnet-infra"
 TEMPLATE_DIR="${INFRA_REPO_DIR}/compose/templates"
+
+if [[ ! -d "$TEMPLATE_DIR" ]]; then
+    echo "ERROR: mitchellnet-infra templates not found at: $TEMPLATE_DIR"
+    echo "Check that mitchellnet-infra is cloned to the expected location."
+    exit 1
+fi
 NEW_REPO_BASE="${HOME}/Documents/visualStudioCode/newProjectStructure"
 
 # --- Parse arguments ---
