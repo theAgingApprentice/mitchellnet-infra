@@ -31,6 +31,14 @@ bash "${REPO_ROOT}/network/create.sh"
 print_step "Generating mkcert SSL certificate for mitchellnet.local..."
 bash "${REPO_ROOT}/ssl/generate.sh"
 
+print_step "Adding mitchellnet.local to /etc/hosts..."
+if grep -q "mitchellnet.local" /etc/hosts; then
+    echo "mitchellnet.local already in /etc/hosts — skipping."
+else
+    echo "127.0.0.1 mitchellnet.local" | sudo tee -a /etc/hosts
+    echo "Added mitchellnet.local to /etc/hosts."
+fi
+
 print_step "Installing scripts to /usr/local/bin..."
 bash "${REPO_ROOT}/scripts/aaInstall"
 

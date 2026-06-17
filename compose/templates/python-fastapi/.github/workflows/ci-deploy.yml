@@ -34,15 +34,13 @@ jobs:
 
       - name: Build and restart container
         run: |
-          # TEMPLATE: replace SERVICE_NAME with your actual service name
           docker compose build --no-cache
           docker compose up -d --no-deps SERVICE_NAME
 
       - name: Health check
         run: |
           sleep 5
-          # TEMPLATE: replace /api/SERVICE_NAME/health with your actual health endpoint
-          curl -sf https://mitchellnet.local/api/SERVICE_NAME/health \
+          curl -sfk https://mitchellnet.local/api/SERVICE_NAME/health \
             -H "X-API-Key: ${API_KEY}" || \
             (docker compose logs SERVICE_NAME --tail=50 && exit 1)
         env:
