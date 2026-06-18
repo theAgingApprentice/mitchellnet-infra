@@ -269,6 +269,12 @@ case "$SERVICE_TYPE" in
         echo "  [ ] Write tests/test_health.py (minimum: health endpoint test)"
         echo "  [ ] Add NGINX location block in InternalWebServer"
         echo "  [ ] Create .env on server at ~/services/${REPO_NAME}/.env"
+        echo "  [ ] Add MitchellNET header/footer to dashboard HTML:"
+        echo "        <link rel=\"stylesheet\" href=\"/css/style.css\">"
+        echo "        <div data-include=\"/includes/header.html\"></div>"
+        echo "        <div data-include=\"/includes/footer.html\"></div>"
+        echo "        <script src=\"/js/includes.js\" defer></script>"
+        echo "      See mitchellnet-infra/docs/runbook.md — MitchellNET Header/Footer section"
         echo "  [ ] Run: aaGitPromote initial-scaffold \"Add python-fastapi scaffold\""
         ;;
     python-flask)
@@ -277,6 +283,12 @@ case "$SERVICE_TYPE" in
         echo "  [ ] Write tests/test_health.py (minimum: health endpoint test)"
         echo "  [ ] Add NGINX location block in InternalWebServer"
         echo "  [ ] Create .env on server at ~/services/${REPO_NAME}/.env"
+        echo "  [ ] Add MitchellNET header/footer to templates/base.html:"
+        echo "        <link rel=\"stylesheet\" href=\"/css/style.css\">"
+        echo "        <div data-include=\"/includes/header.html\"></div>"
+        echo "        <div data-include=\"/includes/footer.html\"></div>"
+        echo "        <script src=\"/js/includes.js\" defer></script>"
+        echo "      See mitchellnet-infra/docs/runbook.md — MitchellNET Header/Footer section"
         echo "  [ ] Run: aaGitPromote initial-scaffold \"Add python-flask scaffold\""
         ;;
     python-flask-db)
@@ -286,6 +298,12 @@ case "$SERVICE_TYPE" in
         echo "  [ ] Write tests/test_health.py (minimum: health endpoint test)"
         echo "  [ ] Add NGINX location block in InternalWebServer"
         echo "  [ ] Create .env on server at ~/services/${REPO_NAME}/.env"
+        echo "  [ ] Add MitchellNET header/footer to templates/base.html:"
+        echo "        <link rel=\"stylesheet\" href=\"/css/style.css\">"
+        echo "        <div data-include=\"/includes/header.html\"></div>"
+        echo "        <div data-include=\"/includes/footer.html\"></div>"
+        echo "        <script src=\"/js/includes.js\" defer></script>"
+        echo "      See mitchellnet-infra/docs/runbook.md — MitchellNET Header/Footer section"
         echo "  [ ] Run: aaGitPromote initial-scaffold \"Add python-flask-db scaffold\""
         ;;
     static-nginx)
