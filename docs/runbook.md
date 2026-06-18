@@ -427,4 +427,80 @@ Audited all repos and the server for `StrictHostKeyChecking=no`. The only hit wa
 
 `html/prod/tmp.txt` (a zero-byte placeholder file) was deleted in the same PR.
 
+---
+
+## MitchellNET Header/Footer in Flask Apps (June 2026)
+
+**Date completed:** 18 June 2026  
+**Repos changed:** InternalWebServer, recipes
+
+All Flask apps served through MitchellNET should display the shared MitchellNET header and footer for consistent navigation. The header and footer are maintained as a single source of truth in the `InternalWebServer` repo and served by `nginx-proxy`.
+
+### How the include system works
+
+The shared fragments live in `InternalWebServer/includes/`:
+
+| File | Purpose |
+| --- | --- |
+| `includes/header.html` | MitchellNET nav bar (logo + Home/Engineering/Workspaces/Infrastructure/Projects/About) |
+| `includes/footer.html` | Site footer (copyright line) |
+
+The `InternalWebServer` deploy pipeline syncs `includes/` to `~/web_server/includes/` on the server. The `nginx-proxy` docker-compose mounts this directory and serves it at `/includes/`.
+
+The static MitchellNET pages load the fragments via `includes.js` — a client-side JavaScript include system that fetches `/includes/header.html` and `/includes/footer.html` and injects them into placeholder `<div>` elements.
+
+### Adding header/footer to a Flask app
+
+In the app's Jinja2 `base.html` template:
+
+1. Link the MitchellNET stylesheet in `<head>`:
+
+   ```html
+   <link rel="stylesheet" href="/css/style.css">
+   ```
+
+2. Add the env banner and header placeholder at the top of `<body>`:
+
+   ```html
+   <div id="env-banner" class="env-prod"></div>
+   <div data-include="/includes/header.html"></div>
+   ```
+
+3. Add the footer placeholder and includes.js before `</body>`:
+
+   ```html
+   <div data-include="/includes/footer.html"></div>
+   <script src="/js/includes.js" defer></script>
+   ```
+
+Do **not** add a custom `<nav>` block — the shared header replaces it entirely.
+
+### Updating the nav
+
+To change the navigation links or header content, edit `InternalWebServer/includes/header.html` and merge via PR. All apps pick up the change automatically on next page load — no changes required in individual app repos.
+
+### curl and HEALTHCHECK requirement
+
+All MitchellNET service Dockerfiles must install `curl` and define a `HEALTHCHECK`. Without `curl`, Docker's health check fails silently with `exec: "curl": executable file not found` and the container is permanently marked `unhealthy` even when the app is working correctly.
+
+The `aaNewService` Dockerfile templates already include this. When maintaining older services, ensure the pattern is present:
+
+```dockerfile
+# Install system dependencies (curl required for Docker health check)
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:5000/ || exit 1
+```
+
+For `static-nginx` (alpine-based), use `wget` instead — it is built into alpine:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -qO- http://localhost/ || exit 1
+```
+
 All Item 10 sub-tasks completed. See InternalWebServer PRs #152–#155 and bench-instrument-service PR #11.
