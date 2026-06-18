@@ -186,6 +186,7 @@ Container names are the DNS names used by NGINX. Use consistent, predictable nam
 |---|---|---|
 | NGINX proxy | `nginx-proxy` | 80, 443 |
 | Fitness Tracker | `fitness-tracker` | 5000 |
+| Recipes App | `recipes-app` | 5000 |
 | Bench Instrument Service | `bench-instrument-service` | 8000 |
 | Grafana | `grafana` | 3000 |
 | Prometheus | `prometheus` | 9090 |
@@ -323,6 +324,7 @@ No secrets in code, no secrets in Docker images, no secrets in Compose files com
 | NGINX proxy | nginx:1.29 | ✅ Running | InternalWebServer | `nginx-proxy` | 80, 443 | 80, 443 | — | SSL termination |
 | Fitness Tracker | Flask + MariaDB | ✅ Running | fitness-tracker | `fitness-tracker` | — | 5000 | — | API auth via X-API-Key (Item 3) |
 | Recipes App | Flask + MariaDB | ✅ Running | recipes | `recipes-app` | — | 5000 | 2026-06-17 | Browse, add, edit, meal plan, shopping list |
+| Vaultwarden | Vaultwarden | ✅ Running | vaultwarden | `vaultwarden` | — | 80 | 2026-06-16 | Password manager at <https://vault.mitchellnet.local/> |
 | Bench Instrument Service | FastAPI | ✅ Live | bench-instrument-service | `bench-instrument-service` | 8001 | 8000 | 2026-06-04 | API auth via X-API-Key (Item 3) |
 | Grafana | Grafana OSS | ✅ Running | ad-hoc | `grafana` | — | 3000 | — | Needs formalising |
 | Prometheus | Prometheus | ✅ Running | ad-hoc | `prometheus` | — | 9090 | — | Needs formalising |
