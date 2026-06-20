@@ -2,6 +2,7 @@
 # =============================================================================
 # ssl/generate.sh
 # Generates a locally-trusted wildcard TLS certificate for mitchellnet.local
+# Also includes the server's bare IP (192.168.2.10) as a Subject Alternative Name so the cert is valid for both name-based and IP-based access.
 # using mkcert. Certificates are placed in ssl/certs/ and mounted into the
 # NGINX container by InternalWebServer.
 #
@@ -21,6 +22,7 @@ set -euo pipefail
 
 CERT_DIR="$(dirname "$0")/certs"
 DOMAIN="mitchellnet.local"
+SERVER_IP="192.168.2.10"
 
 # ---------------------------------------------------------------------------
 # Check mkcert is available
@@ -50,9 +52,9 @@ mkdir -p "${CERT_DIR}"
 # Generate wildcard certificate
 # ---------------------------------------------------------------------------
 echo ""
-echo "→ Generating certificate for: ${DOMAIN}, *.${DOMAIN}, localhost, 127.0.0.1"
+echo "→ Generating certificate for: ${DOMAIN}, *.${DOMAIN}, localhost, 127.0.0.1, ${SERVER_IP}"
 cd "${CERT_DIR}"
-mkcert "${DOMAIN}" "*.${DOMAIN}" localhost 127.0.0.1
+mkcert "${DOMAIN}" "*.${DOMAIN}" localhost 127.0.0.1 "${SERVER_IP}"
 
 echo ""
 echo "✓ Certificate files written to ssl/certs/:"
