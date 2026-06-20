@@ -58,7 +58,7 @@ mkcert "${DOMAIN}" "*.${DOMAIN}" localhost 127.0.0.1 "${SERVER_IP}"
 
 echo ""
 echo "✓ Certificate files written to ssl/certs/:"
-ls -1 "${CERT_DIR}"
+ls -1 .
 
 echo ""
 echo "Next steps:"
