@@ -174,7 +174,66 @@ To regenerate:
 bash ssl/generate.sh
 ```
 
-Certs are written to `ssl/certs/` (git-ignored). After regeneration, restart the NGINX container so it picks up the new certificate.
+Certs are written to `ssl/certs/` (git-ignored).
+
+### Subject Alternative Names (SANs)
+
+As of 20 June 2026, the cert covers: `mitchellnet.local`, `*.mitchellnet.local`, `localhost`, `127.0.0.1`, and `192.168.2.10` (the bare IP). The bare-IP SAN was added that day specifically so `https://192.168.2.10/...` is trusted without a browser warning — see `InternalWebServer/docs/nginx-routing.md` § Bare-IP Parity Standard for why this matters.
+
+If you ever need to add another SAN (e.g. a new subdomain), edit `ssl/generate.sh` — the SAN list is just the argument list passed to the `mkcert` command itself.
+
+### Full generate → deploy lifecycle
+
+`mkcert` is only installed on the Dev Mac — not on the server. The full path a regenerated cert must travel:
+
+1. **Generate on the Dev Mac**, in `mitchellnet-infra`, on `main`:
+
+   ```bash
+   bash ssl/generate.sh
+   ```
+
+   This writes `mitchellnet.local+N.pem` and `mitchellnet.local+N-key.pem` to `ssl/certs/` (the `+N` suffix increments each time mkcert is re-run with a different SAN list — check `ls ssl/certs/` for the actual filename).
+
+2. **Rename to the deploy convention** (also in `ssl/certs/`):
+
+   ```bash
+   cp mitchellnet.local+N.pem server.crt
+   cp mitchellnet.local+N-key.pem server.key
+   ```
+
+   The live config and deploy tooling expect the fixed names `server.crt` / `server.key`, not the mkcert-generated filename.
+
+3. **Back up the live cert on the server first** (so there's an instant rollback):
+
+   ```bash
+   ssh andrew@192.168.2.10
+   mkdir -p ~/web_server/nginx/certs/backup
+   cp ~/web_server/nginx/certs/server.crt ~/web_server/nginx/certs/backup/server.crt.bak-$(date +%Y%m%d)
+   cp ~/web_server/nginx/certs/server.key ~/web_server/nginx/certs/backup/server.key.bak-$(date +%Y%m%d)
+   ```
+
+4. **Copy the new cert to the server** — from the Dev Mac:
+
+   ```bash
+   scp ssl/certs/server.crt andrew@192.168.2.10:~/web_server/nginx/certs/server.crt
+   scp ssl/certs/server.key andrew@192.168.2.10:~/web_server/nginx/certs/server.key
+   ```
+
+   Note the destination: `/home/andrew/web_server/nginx/certs/` — this is a persistent, manually-maintained directory on the server, separate from any repo checkout. It is the actual host path Docker mounts into `nginx-proxy` (confirm with `docker inspect nginx-proxy --format '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{"\n"}}{{end}}'`). It is **not** the same as `InternalWebServer/nginx/certs/` in any repo checkout (that path only contains a `.gitkeep` — certs are deliberately excluded from the repo and from CI deploys).
+
+5. **Restart nginx-proxy** so it picks up the new cert:
+
+   ```bash
+   docker restart nginx-proxy
+   ```
+
+6. **Verify the live cert**, from the server (or any machine that can reach it):
+
+   ```bash
+   echo | openssl s_client -connect 192.168.2.10:443 -servername 192.168.2.10 2>/dev/null | openssl x509 -noout -text | grep -A2 "Subject Alternative Name"
+   ```
+
+   This performs a real TLS handshake and shows exactly what nginx is presenting to clients — the only fully trustworthy check, since it doesn't rely on assuming the right file ended up in the right place.
 
 ---
 
@@ -296,6 +355,8 @@ The InternalWebServer repo has two separate NGINX server blocks in two separate 
 - `nginx/conf.d/000-bareip.conf` — handles `192.168.2.10` (IP-based access)
 
 When adding a new service location block (e.g. `/fitness/`, `/api/bench/`), it must be added to **both** files. If it is only added to `prod.conf`, the service will work via `mitchellnet.local` but return 404 via the IP address — and vice versa. This mistake is not obvious and is very hard to debug because NGINX, Flask, and the deploy pipeline all appear correct.
+
+This warning existed in the runbook before it actually happened in practice. BIS's `/api/bench/` block was added to `prod.conf` only on 15 June 2026 and never to `000-bareip.conf`, and the gap went unnoticed for 5 days until 20 June 2026 — proving that documentation alone doesn't prevent this class of mistake. As of 20 June 2026, `aaNewService`'s checklist explicitly lists both files by name (rather than the generic "add an NGINX location block" line it used before), so this is now backed by tooling, not just this paragraph. See `InternalWebServer/docs/nginx-routing.md` § Bare-IP Parity Standard for the full incident and the policy now in place.
 
 Any time a new service is onboarded via `aaNewService` or manually, verify both files contain the location block before closing the task.
 
@@ -504,3 +565,26 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 ```
 
 All Item 10 sub-tasks completed. See InternalWebServer PRs #152–#155 and bench-instrument-service PR #11.
+
+---
+
+## Incident Log
+
+### 19–20 June 2026 — Unattended power-loss reboot
+
+The server (`imac-server`) lost power and rebooted unattended sometime between **21:29 on 18 June** (last interactive SSH session) and **15:12 on 19 June** (next boot). Root cause was **not** identified — ruled out: scheduled OS reboot (`unattended-upgrades` `Automatic-Reboot` is `false`), GNOME idle/suspend (the system's own idle-suspend setting is `nothing`, i.e. disabled, and `suspend.target` is masked at the systemd level), and a clean shutdown (the previous boot's final log lines show routine cron activity with no shutdown sequence at all). This is the signature of an abrupt hardware/power-layer event — no UPS or power-loss monitoring (`apcupsd`, `nut-client`) is currently installed, so no further forensic detail is available.
+
+**What worked correctly:** every container's `restart: unless-stopped`-equivalent policy functioned as designed — `docker ps` after the reboot showed every service `Up X minutes (healthy)` with no manual intervention required. The apparent "apps acting strange" symptom reported after this reboot was traced entirely to the pre-existing bare-IP routing/cert gap (see § Location Blocks warning above and `InternalWebServer/docs/nginx-routing.md`), not to any container or restart-policy failure.
+
+**Open follow-up (not yet actioned):** consider a UPS for graceful shutdown on power loss, and/or installing `apcupsd`/`nut-client` so future power events leave a forensic trail instead of an unexplained gap in the logs.
+
+### 20 June 2026 — Bare-IP routing and cert gap
+
+`https://192.168.2.10/api/bench/` returned a plain nginx 404 while `https://mitchellnet.local/api/bench/` worked correctly. Root cause: `000-bareip.conf` never received the `/api/bench/` location block added to `prod.conf` on 15 June 2026, and separately the TLS cert had no SAN for `192.168.2.10`. Both fixed same-day:
+
+- Cert regenerated with `192.168.2.10` added as a SAN (`mitchellnet-infra` PR #36)
+- `/api/bench/` location block added to `000-bareip.conf` (`InternalWebServer` PR #167)
+- `aaNewService` checklist updated to name both vhost files explicitly (`mitchellnet-infra` PR #37)
+- `nginx-routing.md` fully audited and rewritten — see `InternalWebServer/docs/nginx-routing.md`
+
+**Known residual issue (low priority, unresolved):** the bare-IP docs page (`https://192.168.2.10/api/bench/docs`) shows a browser "Not Secure" badge despite a confirmed valid, trusted certificate. Investigated and ruled out: BIS's own HTML/JSON, both CDN-hosted Swagger UI assets, and all requests in a captured page load — no `http://` fetch found anywhere. Root cause not identified; functionality unaffected.
