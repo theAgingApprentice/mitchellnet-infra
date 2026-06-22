@@ -39,9 +39,12 @@ All services are reachable under `https://mitchellnet.local` via the NGINX rever
 ```
 mitchellnet-infra/
 ├── docs/
-│   ├── ARCHITECTURE.md       # Full system design: networking, routing, SSL, CI/CD, IoT
-│   ├── deployment-log.md     # Chronological record of service deployments
-│   └── runbook.md            # Step-by-step server rebuild and developer workflow guide
+│   ├── ARCHITECTURE.md                 # Full system design: networking, routing, SSL, CI/CD, IoT
+│   ├── FRAMEWORKS.md                   # Flask vs FastAPI decision guide for MitchellNET services
+│   ├── SERVICE-TYPES.md                # Supported scaffold types and when to use each
+│   ├── mitchellnet-roadmap-updated.md  # Full project roadmap — completed work, active PRs, backlog
+│   ├── deployment-log.md               # Chronological record of service deployments
+│   └── runbook.md                      # Step-by-step server rebuild and developer workflow guide
 ├── network/
 │   └── create.sh             # Creates the mitchellnet external Docker network
 ├── scripts/
