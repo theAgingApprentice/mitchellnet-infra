@@ -1,6 +1,5 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 22 June 2026 (end of evening session — recipes PR #4 item 6, PR #5, and PR #5 URL fix all shipped and verified)
-Item 20 (RRSP/RRIF Withdrawal Planning app) added earlier — still pending build.
+Last updated: 23 June 2026 (end of afternoon session — recipes PRs #28–#31 shipped; BRD/HLA updated to v1.3; new features scoped: UC-16 AI meal planning, UC-17 recipe linking, dish_type field)
 
 Completed
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
@@ -19,29 +18,11 @@ Completed
     • ✅ InternalWebServer website updates (17 June 2026): ◦ Recipes link fixed → /recipes/ ◦ Vaultwarden added to Infrastructure → Hosted Services card ◦ Workshop renamed to Workspaces (home page, hub page, nav header) ◦ Music Studio hub card added to Workspaces page ◦ README routing table updated with recipes entries
     • ✅ Anthropic API account created (17 June 2026): ◦ Account: Google login via va3wam@gmail.com at https://platform.claude.com ◦ $5 USD credits purchased (pay-as-you-go, separate from Claude.ai subscription) ◦ API key mitchellnet-recipes created and saved to Vaultwarden ◦ ANTHROPIC_API_KEY added to ~/services/recipes/.env on server
     • ✅ RRSP/RRIF Withdrawal Planning — analysis complete, documents produced (18 June 2026): ◦ Full financial model built: year-by-year simulation 2026–2084, Ontario tax engine, RRIF minimums, CPP/OAS deferral ◦ Pension income splitting optimised: $105,785 lifetime tax saving identified ◦ Mitchell_RRSP_Report.docx — full analysis with charts, income splitting tables, milestones ◦ Mitchell_RRSP_BRD.docx — 24 functional requirements for production web app ◦ Mitchell_RRSP_HLA.docx — proposed architecture (NOTE: review against existing MitchellNET stack before build) ◦ Item 20 added to Feature/Build Work table for production build
-    • ✅ 18 June 2026 session — recipes PR #3 (Claude API import) completed and hardened: ◦ recipes PR #16 — Claude API recipe import (URL fetch + document upload) merged, deployed, CI green ◦ Implemented: services/fetcher.py (URL fetch + HTML clean), services/extractor.py (Claude extraction, text + document), services/categorizer.py (ingredient categorization — has a known bug, see below), routes/import_.py (GET /import, POST /import/url, POST /import/upload, POST /import/save), templates import/import.html + import/review.html ◦ recipes PR #17 — fixed Claude max_tokens 1000 → 4096 (was truncating JSON on recipes with many ingredients) — merged, deployed, CI green ◦ Live functional test successful: imported "Garlic Prawns (Shrimp)" from RecipeTin Eats — name, cuisine, protein, prep/cook time, notes, ingredients, steps all extracted correctly and saved ◦ recipes PR #18 — BRD and HLA updated to v1.1 (UC-11 through UC-14 added, prep_ahead data model, lessons learned section) — merged, CI green ◦ KNOWN BUG (not yet fixed): app/services/categorizer.py calls extractor.call_claude(), which uses the recipe-extraction system prompt instead of a categorization-specific prompt. All ingredients are currently categorized as "Other". Fix is scoped into PR #4 (see below). ◦ Test recipe records (test, test, test3, test4) still in production DB — cleanup not yet done, low priority
-    • ✅ 20 June 2026 session — Bare-IP routing & cert parity fixed (BIS triage that turned into a full infra audit): ◦ Symptom: BIS unreachable via https://192.168.2.10/api/bench/ (plain nginx 404), worked fine via mitchellnet.local ◦ Root cause #1: /api/bench/ location block was added to prod.conf on 15 June but never mirrored to 000-bareip.conf ◦ Root cause #2: self-signed TLS cert had no SAN for 192.168.2.10, so bare-IP HTTPS always warned regardless of routing ◦ mitchellnet-infra PR #36 — cert regenerated with 192.168.2.10 added as a SAN; bare-IP HTTPS now fully trusted ◦ InternalWebServer PR #167 — /api/bench/ added to 000-bareip.conf; bare-IP and mitchellnet.local now in full path-for-path parity ◦ mitchellnet-infra PR #37 — aaNewService checklist updated to explicitly name both NGINX vhost files (prod.conf and 000-bareip.conf) instead of a generic one-liner, so this class of gap is now caught by tooling, not just documentation ◦ InternalWebServer PR #168 — nginx-routing.md fully audited and rewritten: corrected several already-stale entries (a documented /api/ block that no longer existed, missing /fitness/ /recipes/ /meal-plan/ /shopping-list/ blocks, the Vaultwarden subdomain vhost was undocumented entirely), added a "Bare-IP Parity Standard" section defining the policy (Vaultwarden's subdomain vhost is explicitly exempt — no bare-IP equivalent of a subdomain) ◦ mitchellnet-infra PR #38 — runbook.md expanded with the full cert generate → rename → backup → scp → restart → verify lifecycle, plus a new "Incident Log" section ◦ mitchellnet-infra PR #39 — fixed a small cosmetic bug in ssl/generate.sh (trailing ls used the wrong relative path) ◦ Separately diagnosed: the underlying server reboot (18→19 June) that started this investigation was an unattended power-loss event, cause undetermined — ruled out scheduled OS reboot, GNOME suspend (masked at systemd level), and clean shutdown. All container restart policies worked correctly with no manual intervention needed; no UPS currently installed (open follow-up, not actioned) ◦ KNOWN ISSUE (low priority, logged, unresolved): https://192.168.2.10/api/bench/docs shows a browser "Not Secure" badge despite a confirmed valid, trusted cert — investigated thoroughly (BIS's own HTML/JSON, both CDN-hosted Swagger UI assets, full captured network request list), no http:// resource found anywhere, root cause not identified, functionality unaffected. See mitchellnet-infra/docs/runbook.md § Incident Log for full detail on both items.
-    • ✅ 20 June 2026 evening session — recipes PR #4, Part 1 (5 of 7 scoped items shipped, one-PR-per-item, each merged and deploy-verified individually): ◦ recipes PR #19 — fixed categorizer.py bug: it was calling extractor.call_claude() and silently inheriting the recipe-extraction system prompt instead of its own categorization prompt (root cause of all ingredients showing "Other"). Gave categorizer.py its own direct Anthropic API call via a shared get_client() helper exposed from extractor.py, with its own system prompt. Merged, deployed, verified. ◦ recipes PR #20 — loading indicator ("Extracting recipe…") added to both URL-import and file-upload forms on import.html: spinner overlay + submit-button disable on native form submit, no route changes needed. Merged, deployed, verified (Deploy to Production succeeded in 1m 39s). ◦ recipes PR #21 — loading indicator ("Saving…") added to the save form on review.html, same overlay pattern, distinct element IDs from PR #20's overlay to avoid any future template-merge collisions. Merged, deployed, verified (1m 23s). ◦ recipes PR #22 — delete button added to the browse page actions column, with a confirm() dialog naming the recipe and warning about cascade (ingredients, steps, cook log history). No backend changes needed — the /<id>/delete route and cascade="all, delete-orphan" relationships on Ingredient/Step/CookLog already existed and worked correctly once wired up from the UI. Merged, deployed, verified (1m 27s). ◦ recipes PR #23 — duplicate detection at import: new _find_duplicate() helper in routes/import_.py using difflib.SequenceMatcher (case-insensitive, threshold 0.8 — exact matches score 1.0 and are automatically caught by the same check, so no separate exact-match code path was needed); wired into both import_url and import_upload right before the review page renders; amber warning banner added to review.html with a "View Existing Recipe" link (opens in a new tab so the in-progress review form isn't lost) when a match is found; does not block save. Merged, deployed, verified (1m 36s). Live-tested successfully against the existing "Garlic Prawns (Shrimp)" recipe — banner appeared correctly with exact-match name; the resulting duplicate review was discarded, not saved. ◦ Deploy Verification step (per Standing Instructions) was checked via the Actions tab after every merge this session, not just assumed from the GitHub merge screen — this caught that the merge screen's "X checks pending" badge lags behind the actual Actions run completing, so the Actions tab itself remains the authoritative check. ◦ NEW KNOWN ISSUE (logged, not yet actioned): importing https://www.allrecipes.com/... fails with a 403 Forbidden from services/fetcher.py — confirmed via container logs (docker compose logs recipes-app) that AllRecipes is blocking the fetch (likely scraper/bot detection), not a code defect introduced this session. RecipeTin Eats and other previously-tested sources are unaffected. Root cause not yet narrowed down to a specific header (e.g. User-Agent) — out of scope for PR #4's locked decisions; would be its own small PR if pursued. ◦ NEW KNOWN ISSUE (logged, not yet actioned, not urgent): GitHub Actions surfaced a deprecation annotation this session — "Node.js 20 is deprecated... actions/setup-python@v5" being forced onto Node.js 24. Not a failure, every run this session still succeeded; flagged for a future mitchellnet-infra maintenance pass to bump the pinned action version. ◦ STILL OUTSTANDING from PR #4's original 7-item scope: item 4 (wishlist → rating system) remains DEFERRED per the locked design decision; item 6 (prep-ahead flag) shipped in the 22 June session (see below).
-    • ✅ 20 June 2026 evening session — recipe data migration, first pass (44 of 48 recipes imported from the recovered old static list): ◦ Source list recovered from InternalWebServer's orphaned static page (html/prod/recipes/recipes.html — file was never deleted, just unlinked from nav when the Flask app went live 17 June; one commit in its whole history, 8a189d2) ◦ 44 of 48 URLs imported successfully across one user-driven import session ◦ porkStroganoff.pdf (the one local-file recipe on the old list) hit the 413 upload-size issue (see § 6.5) — worked around by rasterizing to a compressed JPEG (~290KB), imported successfully that way ◦ 4 URLs discarded, no further action: AllRecipes (403, known bot-block), AgingLikeWine (404, dead link), Yummly (redirects to kitchenaid.com, then times out — Yummly may no longer operate as a standalone recipe site, unconfirmed), FoodNetwork.ca (SSL handshake error talking to their server) ◦ Open follow-up (Andrew's own): the InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) looks like a category/listing-page URL rather than a single recipe — needs a check of the saved recipe's detail page to confirm Claude extracted one real recipe, not garbled listing content ◦ Remaining: 6 cookbook page references (Nagi cookbook + New Nagi cookbook) still need manual "Add Recipe" entry since they have no URL
-    • ✅ 22 June 2026 planning session — Cook Log / UC-15 specified and docs updated: ◦ New business requirement: track each time a recipe is made; user confirms they are making the dish and can optionally rate it 1–5 and add per-cook notes ◦ Design decisions locked: rating is optional at time of logging (can be added/edited later); "We made this!" button lives on both the detail page and the browse page (per-recipe row); each cook entry supports an optional free-text notes field; detail page shows summary (times made · avg rating · last made) at the top and full cook log (reverse chronological) below; individual entries are editable and deletable ◦ BRD updated to v1.2: UC-08 rewritten to reflect button-on-both-pages + immediate entry creation; UC-15 Cook Log added (full acceptance criteria for summary, full log, edit, delete, browse page button + summary); UC-02 updated; success criteria updated ◦ HLA updated to v1.2: cook_log.py route file added; cook_log/edit.html template added; new § 6.6 Cook Log Routes documents the four routes (POST /recipes/<id>/cook, GET+POST /cook-log/<log_id>/edit, POST /cook-log/<log_id>/delete), detail page summary block spec, full log table spec, browse page summary, and cook_summary property helper; PR table updated ◦ No new DB migration needed — cook_logs table already present in live schema ◦ Migration approach confirmed: Flask-Migrate (Alembic) — migrations/ directory exists in the repo ◦ Roadmap moved to mitchellnet-infra/docs/ as its permanent home ◦ mitchellnet-infra PR #40 — roadmap added to docs/; README updated to reference all docs files
-    • ✅ 22 June 2026 evening session — recipes PR #4 item 6, PR #5 Cook Log, and PR #5 URL fix all shipped: ◦ recipes PR #25 — prep-ahead flag complete: extractor.py JSON schema + system prompt updated (prep_ahead boolean field + detection rules for overnight marinating, dough resting, soaking, brining); recipe.py model updated (prep_ahead + prep_ahead_override columns); DB migration applied directly via ALTER TABLE on live MariaDB (Flask-Migrate confirmed as the tooling but no migrations/ directory existed — migration done as raw ALTER TABLE + init.sql updated for future fresh installs); import_.py updated to pass prep_ahead through on save; recipes.py updated to handle prep_ahead_override on edit; review.html + form.html both updated with prep-ahead toggle/checkbox. Merged, deployed, CI green (1m 23s). DB columns verified live: DESCRIBE recipes confirmed both tinyint(1) NOT NULL DEFAULT 0 columns present. ◦ recipes PR #26 — Cook Log (UC-08 + UC-15): new app/routes/cook_log.py (4 routes: POST /<recipe_id>/cook, GET+POST /cook-log/<log_id>/edit, POST /cook-log/<log_id>/delete); new app/templates/cook_log/edit.html; detail.html updated (Cook Log card always shown, summary block, full log table with edit/delete per entry, "We made this!" button); browse.html updated (Cook History column, per-row count + avg rating, "Made it" button per row). Merged, deployed, CI green (1m 22s). ◦ recipes PR #27 — Fix cook log template URLs: all cook log action= and href= values were missing the /recipes/ prefix required by NGINX Approach A routing — 3 URL fixes across detail.html and browse.html. Root cause: new routes correctly defined in Flask (/<recipe_id>/cook etc.) but templates were sending browser requests without the /recipes/ prefix nginx needs to route them. Verified live: curl -sk -X POST https://mitchellnet.local/recipes/5/cook returned HTTP 302 redirect to /recipes/5. Merged, deployed, CI green (1m 24s). ◦ LESSON LEARNED: always verify a live recipe ID exists before using it in curl smoke tests — recipe ID 1 had been deleted from the DB, causing a Flask 404 (not found via get_or_404) that initially looked like a routing bug. Recipe ID 5 was the first existing record. ◦ main is at commit 55f13fa as of end of session.
-
-Feature/Build Work — Recipes App PR #4 ✅ COMPLETE (22 June 2026)
-Scope agreed at end of 18 June 2026 session, design decisions locked in:
-    1. ✅ DONE (recipes PR #20) — Loading indicator while importing from URL ("Extracting recipe…")
-    2. ✅ DONE (recipes PR #21) — Loading indicator while saving a recipe ("Saving…")
-    3. ✅ DONE (recipes PR #22) — Delete button for recipes on the browse page (with confirmation, cascade delete)
-    4. DEFERRED — Replace wishlist boolean with a 1–5 rating system. Decision: need to see CookLog rating in action first before deciding whether recipe-level rating is a separate field or derived from CookLog average. Wishlist stays as-is for now.
-    5. ✅ DONE (recipes PR #23) — Duplicate detection at import time: exact name match (case-insensitive) + fuzzy match via difflib.SequenceMatcher (threshold 0.8). Checked server-side when review page renders, before save. Warning shown with link to existing recipe; user can save anyway or discard. Does not block save. Live-verified against "Garlic Prawns (Shrimp)".
-    6. ✅ DONE (recipes PR #25) — Prep-ahead flag: extractor schema + system prompt, model columns, ALTER TABLE migration + init.sql, import save route, edit route, review.html toggle, form.html toggle.
-    7. ✅ DONE (recipes PR #19) — Fixed categorizer.py bug — it now has its own direct Anthropic API call with its own system prompt instead of reusing extractor.call_claude().
-
-Feature/Build Work — Recipes App PR #5 ✅ COMPLETE (22 June 2026)
-Cook Log (UC-08 + UC-15) — fully shipped across two PRs:
-    • recipes PR #26 — Cook Log feature: cook_log.py route file (4 routes), cook_log/edit.html template, detail.html cook log card (summary + full log + edit/delete), browse.html cook history column + "Made it" button. Merged, deployed, CI green (1m 22s).
-    • recipes PR #27 — Fix cook log template URLs: /recipes/ prefix missing from all cook log action= and href= values in templates. 3 fixes across detail.html and browse.html. Merged, deployed, CI green (1m 24s). Live-verified: HTTP 302 confirmed on POST to /recipes/5/cook.
-
-BRD/HLA status: v1.2 (22 June 2026) — covers UC-11 through UC-15, prep_ahead data model, cook log routes, all lessons learned.
+    • ✅ 18 June 2026 session — recipes PR #3 (Claude API import) completed and hardened: ◦ recipes PR #16 — Claude API recipe import (URL fetch + document upload) merged, deployed, CI green ◦ recipes PR #17 — fixed Claude max_tokens 1000 → 4096 ◦ recipes PR #18 — BRD and HLA updated to v1.1 ◦ Live functional test successful: imported "Garlic Prawns (Shrimp)" from RecipeTin Eats
+    • ✅ 20 June 2026 session — Bare-IP routing & cert parity fixed: ◦ mitchellnet-infra PRs #36–#39, InternalWebServer PRs #167–#168 ◦ Bare-IP Parity Standard documented and enforced by aaNewService checklist ◦ nginx-routing.md fully audited and rewritten
+    • ✅ 20 June 2026 evening session — recipes PR #4 (5 of 7 items) + recipe data migration first pass (44 of 48 recipes imported)
+    • ✅ 22 June 2026 session — recipes PR #4 item 6 (prep-ahead flag), PR #5 (Cook Log UC-08 + UC-15), PR #5 URL fix. BRD/HLA updated to v1.2. main at 55f13fa.
+    • ✅ 23 June 2026 session — recipes PRs #28–#31 all shipped and verified: ◦ recipes PR #28 — Fix shopping list ingredient aggregation: quantities now collected and combined with + instead of first-seen-wins. Merged, deployed, CI green (1m 20s). main → 441ac62. ◦ recipes PR #29 — Dynamic cuisine list from DB + admin page: cuisines table seeded with all 18 live values; CUISINES hardcoded constant removed; Cuisine model added; admin page at /recipes/admin/ with Add Cuisine form; ⚙ Admin link in every page header. Merged, deployed, CI green (1m 19s). main → fe9b357. ◦ recipes PR #30 — BRD and HLA updated to v1.3: UC-16 AI Meal Planning, UC-17 Recipe Linking, dish_type field, wishlist un-flag prompt, admin picklist extensions (dish_types, rejection_reasons), ai_suggestions tracking table. Merged, deployed. main → 4d98707. ◦ recipes PR #31 — dish_type field full stack: DB migration (dish_type column on recipes + dish_types table seeded with 7 values); DishType model; browse/add/edit/import routes updated; form.html + browse.html + detail.html + review.html templates updated; browse cuisine filter bug fixed (was using string instead of object .name); dish_type filter added to browse; admin Dish Types section added; extractor schema + system prompt updated for auto-detection. Merged, deployed, CI green (1m 22s). main → c2f7c54. ◦ Test record cleanup — ✅ DONE (Andrew cleaned up test, test, test3, test4 records from production DB) ◦ Cuisine picklist expansion — ✅ DONE (all 18 live cuisines now in DB, dynamic from cuisines table)
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -57,7 +38,7 @@ API Keys
     • recipes key + ANTHROPIC_API_KEY → ~/services/recipes/.env
 
     2. Secrets Storage
-Short term: .env files on the LAN-only server are the source of truth. Long term: Vaultwarden (live at https://vault.mitchellnet.local/). .env symlinks added: ~/network-monitoring/.env and ~/monitoring/.env both symlink to ~/web_server/.env. Vaultwarden is fully populated with all credentials including the Anthropic API key. ✅
+Short term: .env files on the LAN-only server are the source of truth. Long term: Vaultwarden (live at https://vault.mitchellnet.local/). Vaultwarden is fully populated with all credentials including the Anthropic API key. ✅
 
 2.5 Vaultwarden Admin Panel
     • Email: va3wam@gmail.com
@@ -77,7 +58,7 @@ Phase 0 — Security Remediation ✅ COMPLETE
 Phase 0.5 — Bare-IP / Name Parity Standard ✅ COMPLETE (20 June 2026) — all path-based services now reachable identically via mitchellnet.local and 192.168.2.10; enforced going forward by aaNewService
 
 Feature/Build Work
-    • Item 15 (Recipes app) — PR #4 ✅ COMPLETE, PR #5 ✅ COMPLETE; PR #6 (meal plan + shopping list refinements) next
+    • Item 15 (Recipes app) — PRs #4, #5, #6 ✅ COMPLETE; PRs #7–#10 planned (see § 5)
     • Item 20 (RRSP/RRIF app) — analysis complete, build not started
 
 Phase 3 — Monitoring
@@ -85,29 +66,43 @@ Phase 4 — IoT
 
     4. aaNewService — Known Issues
 Items A–F fixed in mitchellnet-infra PR #30 (17 June 2026). ✅
-Checklist updated 20 June 2026 (mitchellnet-infra PR #37) to explicitly name both NGINX vhost files (prod.conf and 000-bareip.conf) when prompting for the location-block step, instead of a generic one-line reminder. ✅
+Checklist updated 20 June 2026 (mitchellnet-infra PR #37) to explicitly name both NGINX vhost files. ✅
 
     5. Recipes App — Remaining PRs
-    • PR #4 — ✅ COMPLETE (22 June 2026): all 7 items done (items 1–3, 5, 7 in 20 June session; item 6 in 22 June session; item 4 deferred)
-    • PR #5 — ✅ COMPLETE (22 June 2026): Cook Log shipped as recipes PR #26 + PR #27 (URL fix)
-    • PR #6 (planned) — meal plan + shopping list refinements
-    • PR #7 (planned) — seed script + data migration from old static recipes.html
+    • PR #6 — ✅ COMPLETE (23 June 2026): shopping list aggregation fix (PR #28) + dynamic cuisine list + admin page (PR #29) + dish_type full stack (PR #31)
+    • PR #7 (planned) — AI meal planning (UC-16): ai_planner service, ai_plan routes + templates, rejection_reasons + ai_suggestions DB tables, NGINX /ai-plan/ blocks in both vhosts
+    • PR #8 (planned) — Recipe linking (UC-17): recipe_links DB table, recipe_links routes, detail + form template updates
+    • PR #9 (planned) — Wishlist un-flag prompt (UC-08 enhancement): prompt after "We made this!" on wishlist recipes
+    • PR #10 (planned) — 6 cookbook recipes manual entry (Nagi cookbook + New Nagi cookbook page references)
+    • InternalWebServer PR (planned, with PR #7) — add /ai-plan/ and /recipe-links/ location blocks to prod.conf + 000-bareip.conf
     • Recipe-level rating system — deferred pending CookLog usage review
-    • Test record cleanup (test, test, test3, test4) in production DB — low priority
-    • fetcher.py AllRecipes 403 — low priority, logged 20 June, see § 6.5 Known Issues
-    • Expand Cuisine picklist (NEW — 20 June 2026, surfaced while migrating recipes): CUISINES constant in app/routes/recipes.py currently lists American, Asian, Italian, Mediterranean, Mexican, Other — needs at least Thai, Vietnamese, Chinese added, since several migrated recipes are clearly one of those rather than generic "Asian." Small, low-risk change (one list in routes/recipes.py — values are not currently constrained at the DB level, so no migration needed). Open question to resolve when picked up: add these alongside Asian, or have them replace/narrow it for newly-categorized recipes — Andrew to decide, not yet specified.
+    • fetcher.py AllRecipes 403 — low priority, logged 20 June
+    • Recipe file upload 413 fix — low priority (client_max_body_size in both NGINX vhosts + Flask MAX_CONTENT_LENGTH)
+    • GitHub Actions deprecation annotation (actions/setup-python@v5 / Node.js 20) — low priority, flagged for mitchellnet-infra maintenance pass
+
+    5.5 Recipes App — DB Backup Gap (NEW — 23 June 2026)
+No automated backup of the recipes_db MariaDB volume exists. Confirmed: no crontab for user andrew on the server. The recipes_recipes_data Docker volume holds all recipe data and would be lost if the volume is corrupted or the server is rebuilt without a prior dump.
+
+Required fix (not yet implemented):
+    • Add a cron job on the server to run mysqldump inside the recipes-db container nightly, saving to a dated file on the host (e.g. ~/backups/recipes/recipes_db_YYYY-MM-DD.sql)
+    • Retain last N dumps (suggest 7 days)
+    • Verify the backup file is non-zero after each run
+    • Document the restore procedure in runbook.md
+    • Consider whether the same gap exists for other MariaDB-backed services (fitness-tracker uses SQLite — not affected; BIS uses InfluxDB — check separately)
+
+This is the highest-priority infrastructure item not yet addressed.
 
     6. RRSP/RRIF Withdrawal Planning App — Item 20
 Planning and analysis complete. Three documents produced. Build not yet started. HLA review against existing MitchellNET stack still pending before any code is written.
 
     6.5 Known Issues — Logged, Not Yet Actioned
-A running list of confirmed-but-deferred issues, so they don't get re-discovered from scratch in a future session. None of these are blocking current work.
-    • "Not Secure" browser badge on https://192.168.2.10/api/bench/docs despite a valid, trusted cert — root cause not identified after thorough investigation (20 June). See mitchellnet-infra/docs/runbook.md § Incident Log. Low priority, functionality unaffected.
-    • AllRecipes.com import returns 403 Forbidden from services/fetcher.py — confirmed via container logs to be a block on AllRecipes' side (likely scraper/bot detection), not a defect in PR #4's changes. Other sources (RecipeTin Eats, etc.) unaffected. Root cause not narrowed to a specific header; a fix (e.g. realistic User-Agent) would be its own small PR. Logged 20 June, not yet actioned.
-    • GitHub Actions deprecation annotation: "Node.js 20 is deprecated... actions/setup-python@v5" forced onto Node.js 24 — not a failure, every run still succeeds. Flagged for a future mitchellnet-infra maintenance pass to bump the pinned action version across repos. Logged 20 June, not urgent.
-    • Test recipe records (test, test, test3, test4) still in production DB — cleanup not yet done, low priority.
-    • Recipe file import fails with 413 Request Entity Too Large on files over ~1MB — confirmed (20 June, testing porkStroganoff.pdf, a 13MB phone-photo PDF) to be NGINX's default client_max_body_size (1MB) rejecting the upload before it reaches Flask, on both the bare-IP and mitchellnet.local vhosts. Workaround used: rasterized the PDF to a compressed JPEG (pdftoppm -jpeg -r 150 -jpegopt quality=82, ~290KB output, still legible) and imported that instead — works but isn't a real fix. Proper fix (not yet done): add client_max_body_size to the /recipes/ location block in BOTH InternalWebServer/nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf per the Bare-IP Parity Standard, plus check whether Flask's own MAX_CONTENT_LENGTH (app/app.py, not yet reviewed) also needs raising — fixing only NGINX could just move the failure point to Flask. Will recur for every future cookbook-photo import until fixed.
-    • No UPS installed on the server — open follow-up from the 18→19 June unexplained power-loss reboot; all containers recovered correctly on their own, but the gap remains unaddressed.
+    • "Not Secure" browser badge on https://192.168.2.10/api/bench/docs despite a valid, trusted cert — root cause not identified. Low priority, functionality unaffected. See runbook.md § Incident Log.
+    • AllRecipes.com import returns 403 Forbidden from services/fetcher.py — scraper/bot detection on AllRecipes' side. Fix (e.g. realistic User-Agent header) would be its own small PR.
+    • GitHub Actions deprecation annotation: "Node.js 20 is deprecated... actions/setup-python@v5" — not a failure. Flagged for mitchellnet-infra maintenance pass.
+    • Recipe file import fails with 413 Request Entity Too Large above ~1MB — NGINX's default client_max_body_size. Workaround: rasterize large PDFs to compressed JPEG. Real fix: client_max_body_size in both NGINX vhost files + check Flask MAX_CONTENT_LENGTH.
+    • InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) may be a category page not a single recipe — Andrew to check the saved recipe's detail page.
+    • No UPS installed on the server — open follow-up from the 18→19 June power-loss reboot.
+    • recipes_db has no automated backup — see § 5.5 for detail and required fix.
 
     7. Lessons Learned — NGINX + Flask Routing
 At the start of any new session involving Flask services or NGINX routing, request these two documents before writing any code:
@@ -119,35 +114,29 @@ Summary of key rules
     • Multi-prefix exception: secondary prefixes (e.g. /recipes/api/, /meal-plan/, /shopping-list/) use proxy_pass without trailing slash to preserve the full path
     • url_for() is prefix-unaware: always use hard-coded absolute paths for redirects (e.g. redirect(f"/recipes/{r.id}"))
     • HTML anchor tags only: Jinja2 templates must use <a> tags — Markdown-style links render as literal text
-    • Bare-IP parity: every service location block must be added to BOTH nginx/conf.d/prod.conf AND nginx/conf.d/000-bareip.conf — exception: subdomain-based services (currently only Vaultwarden) have no bare-IP equivalent and are exempt. Enforced by aaNewService's checklist as of 20 June 2026.
-    • Template action= and href= values must include the /recipes/ prefix — the browser sends the full URL to nginx; only Flask's internal route definitions use the stripped path. New routes added without this prefix will 404 at nginx even if the Flask URL map shows them correctly registered. Always smoke-test new routes with curl -sk -X POST https://mitchellnet.local/recipes/<path> immediately after deploy. (NEW — 22 June 2026, from cook log URL fix)
-    • Always verify a live record exists before using its ID in curl smoke tests — a 404 from get_or_404() looks identical to a routing 404 at first glance. Check Flask's URL map first (docker exec python3 -c "...app.url_map..."), then confirm the record exists, before concluding the route is broken. (NEW — 22 June 2026)
+    • Bare-IP parity: every service location block must be added to BOTH nginx/conf.d/prod.conf AND nginx/conf.d/000-bareip.conf — exception: subdomain-based services (currently only Vaultwarden)
+    • Template action= and href= values must include the /recipes/ prefix — always smoke-test new routes with curl -sk immediately after deploy
+    • Always verify a live record exists before using its ID in curl smoke tests — a 404 from get_or_404() looks identical to a routing 404
+    • Picklist dropdowns in templates must use object.name (e.g. {{ c.name }}) when the list comes from a DB query returning model objects — not {{ c }} which was correct for the old hardcoded string lists (NEW — 23 June 2026, caught during dish_type PR)
 
-7.5 Lessons Learned — Claude API Integration (18 June 2026)
-    • max_tokens must be generous: 1000 caused truncated/unparseable JSON on recipes with many ingredients. Use 4096 as a baseline for structured extraction tasks; consider higher for very complex documents.
-    • Don't share a Claude API call function across services with different system prompts: categorizer.py called extractor.call_claude(), silently using the wrong (recipe-extraction) system prompt. Each distinct AI task needs its own client call with its own system prompt — don't reuse "generic" call wrappers across unrelated prompts.
-    • curl smoke tests on the server need -k: mitchellnet.local uses a self-signed cert. Plain curl fails silently (empty body via grep); always use curl -sk when testing HTTPS endpoints from the server itself.
-    • VSCode Claude plugin can silently mangle large file overwrites: when asking the plugin to replace an entire doc's contents, verify with wc -l and head/tail afterward — don't trust git diff alone if the diff itself looks suspiciously small relative to the intended change. If mangled, it's faster to generate the file via Claude's artifact/file system and have the user copy it in manually than to retry the plugin or fight a heredoc in the terminal (backtick code fences inside heredocs can hang the shell — use a Python triple-quoted string or a downloadable file instead).
+7.5 Lessons Learned — Claude API Integration
+    • max_tokens must be generous: use 4096 as a baseline for structured extraction tasks
+    • Don't share Claude API call functions across services with different system prompts
+    • curl smoke tests on the server need -k flag (self-signed cert)
+    • VSCode Claude plugin can silently mangle large file overwrites — verify with wc -l and head/tail
 
-7.6 Lessons Learned — Documentation & Process (20 June 2026)
-    • A documented warning doesn't prevent a mistake if only the docs say it — the "location blocks must exist in both NGINX files" warning was already written in runbook.md before the BIS bare-IP gap happened, and it still happened. The durable fix was updating aaNewService's checklist itself (tooling), not re-stating the warning more emphatically.
-    • When a doc claims to be a complete reference (e.g. "every URL path prefix handled"), verify that claim against the live files (cat / diff) rather than trusting it — a routine audit this session found a documented location block that no longer existed in prod.conf at all, plus several real blocks that were never documented.
-    • Pasted terminal output into chat can introduce its own copy/paste artifacts (words merged at line-wrap boundaries), separate from anything the file or the VSCode plugin did. When a diff shown in chat looks suspicious around word boundaries, verify the actual file content directly (e.g. python3 -c "print('substring' in open(path).read())") rather than trusting the pasted diff text — this caught several false issues today. sed/grep pattern matching on em-dash and other multi-byte characters proved unreliable on macOS; Python string operations were the reliable fallback.
+7.6 Lessons Learned — Documentation & Process
+    • A documented warning doesn't prevent a mistake — the durable fix is updating tooling (aaNewService checklist), not re-stating the warning
+    • When a doc claims to be a complete reference, verify against live files (cat / diff)
+    • Pasted terminal output can introduce copy/paste artifacts — verify with direct Python file read before assuming the file is broken
 
-7.7 Lessons Learned — One-Item-Per-PR Workflow & Live Verification (20 June evening session)
-    • Splitting a multi-item scoped PR (PR #4) into one PR per item, each promoted/merged/deploy-verified independently, kept every diff small enough to fully read and reason about before promoting — no large multi-file diffs to skim. Worth continuing as the default pattern for future multi-item scopes.
-    • The GitHub merge screen's "X checks pending" indicator can lag behind the actual Actions run completing — confirmed by checking the Actions tab directly after a merge that showed "1 check was pending," which turned out to already be a passed "Deploy to Production" run. The Actions tab, not the merge screen, is the authoritative source for deploy status per the standing Deploy Verification step.
-    • Code-review-confidence and live-behavior-confidence are different things, especially for logic with a numeric threshold (e.g. difflib's 0.8 fuzzy-match cutoff) — the duplicate-detection PR was correct on diff review, but worth an actual live import against a known-duplicate name to confirm the threshold behaves as intended in practice, not just in theory. The first live test (AllRecipes) failed for an unrelated reason (403 block) before reaching the duplicate-check code at all — a reminder that "the feature didn't show up" can mean an earlier step in the pipeline failed, not that the feature itself is broken; always check the actual error (container logs) before assuming the new code is at fault.
-    • When deliberately testing duplicate-detection by re-importing an existing recipe, discard the resulting review page rather than saving — otherwise the test itself creates the duplicate record the feature was built to warn about.
+7.7 Lessons Learned — One-Item-Per-PR Workflow & Live Verification
+    • Split multi-item scoped work into one PR per item — keeps diffs small and reviewable
+    • GitHub merge screen "X checks pending" badge lags behind actual Actions run — check Actions tab directly
+    • Code-review-confidence and live-behavior-confidence are different things — always live-test features with actual data
 
     8. InternalWebServer — Site Structure
-Navigation
-Home | Engineering | Workspaces | Infrastructure | Projects | About
-
-Reference Hubs
-    • /engineering/ — Electronics, PCB design, embedded systems, AI/ML, software development
-    • /workshop/ — Workspaces: Machine shop, wood shop, music studio, 3D printing, electrical, design software
-    • /infrastructure/ — Network design, server setup, monitoring, home automation
+Navigation: Home | Engineering | Workspaces | Infrastructure | Projects | About
 
 Hosted Apps
     • /fitness/ — Fitness Tracker
@@ -157,73 +146,64 @@ Hosted Apps
 Infrastructure → Hosted Services
     • Vaultwarden — https://vault.mitchellnet.local/
 
-    8.5 InternalWebServer — Backlog / Maintenance (NEW — 20 June 2026)
-Two items added to the backlog this session, neither started:
-    1. Re-clone InternalWebServer to the standard repo location. Currently at ~/Documents/visualStudioCode/html/projects/InternalWebServer — the one exception to the newProjectStructure pattern all other repos use (~/Documents/visualStudioCode/newProjectStructure/<repo>). Goal: re-clone to ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer for consistency. Claude's assessment (not yet verified hands-on): git itself, GitHub, branch protection, CI/CD, and the server-side deploy pipeline are all independent of the local Mac clone path, so a straight re-clone should be safe. The one real unknown: it hasn't been confirmed whether any of the aaGit* / aaNewService helper scripts hardcode the old html/projects/InternalWebServer path anywhere — plausible, since Standing Instructions already special-case this repo as the sole exception. Recommended approach when this is picked up: do a fresh clone to the new path first, verify it works (aaGitPromote/aaGitCleanupBranches run cleanly from the new location, VSCode opens it correctly), and only delete the old clone after that's confirmed — don't delete-then-discover. Once done, the "Repo Locations on Mac Studio" entry in Standing Instructions (and the REPOS section of the Resume Prompt below) will need updating to drop the exception.
-    2. InternalWebServer site IA / structure cleanup. Some pages are no longer linked/used (the orphaned recipes.html discovered this session is a known example — there may be others), and the overall site structure has grown inconsistently over time. Needs an audit pass first (which pages are actually linked from the live nav vs. orphaned, similar to how recipes.html was found) before any redesign work starts. Not scoped in detail yet — scope and approach to be defined at the start of whichever session picks this up.
+    8.5 InternalWebServer — Backlog / Maintenance
+    1. Re-clone InternalWebServer to the standard repo location (~/Documents/visualStudioCode/newProjectStructure/InternalWebServer). Currently at ~/Documents/visualStudioCode/html/projects/InternalWebServer — the one exception to the newProjectStructure pattern. Approach: fresh clone to new path, verify aaGitPromote/aaGitCleanupBranches work from new location, then delete old clone. Update Standing Instructions REPOS section once done.
+    2. Site IA / structure cleanup — audit which pages are linked vs. orphaned (recipes.html was orphaned, may be others), then redesign. Not scoped yet.
 
     9. Resume Prompt (paste this verbatim to start the next session)
 
 Resuming MitchellNET work.
 
-We use this workflow: you tell me step-by-step what to either (1) run on the server SSH terminal, (2) run on the Dev Mac terminal, or (3) tell the Claude plugin in VSCode to do — one repo at a time, since I have to switch VSCode windows per repo. Always tell me which repo I should be in before giving instructions. I paste back outputs/diffs for your review before we proceed. For commits we use aaGitPromote <branch> "<msg>" and aaGitCleanupBranches (never delete branches via GitHub UI — I don't click "Delete branch" on GitHub either, the script handles it). PRs are merged via GitHub UI after CI passes. For literal file dumps, give me raw cat/grep commands rather than asking the plugin to "show" files. Always pipe git diff through cat to prevent pager hang: git diff | cat. After any edit, get the diff before promoting.
+We use this workflow: you tell me step-by-step what to either (1) run on the server SSH terminal, (2) run on the Dev Mac terminal, or (3) tell the Claude plugin in VSCode to do — one repo at a time, since I have to switch VSCode windows per repo. Always tell me which repo I should be working in before giving instructions. I paste back outputs/diffs for your review before we proceed. For commits we use aaGitPromote <branch> "<msg>" and aaGitCleanupBranches (never delete branches via GitHub UI — I don't click "Delete branch" on GitHub either, the script handles it). PRs are merged via GitHub UI after CI passes. For literal file dumps, give me raw cat/grep commands rather than asking the plugin to "show" files. Always pipe git diff through cat to prevent pager hang: git diff | cat. After any edit, get the diff before promoting.
 
 We stay on the main branch at all times in the Dev Mac terminal — aaGitPromote creates the feature branch itself, commits, and pushes; I never manually git checkout -b.
 
 At the start of any session involving Flask services or NGINX routing, request these two docs before writing any code:
     • recipes/README.md — Development Notes section
-    • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard added 20 June 2026 — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
+    • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
 
-If the VSCode plugin's diff for a large file replacement looks too small or suspicious, verify with wc -l and head/tail before trusting it — the plugin can silently truncate large file overwrites. If a file gets mangled, don't fight it with heredocs (backtick fences can hang the terminal) — generate the file as a downloadable artifact instead and have me copy it into the repo manually. Separately: if I paste terminal output back to you and a diff or check looks suspicious around word boundaries (especially near em dashes or other punctuation), don't assume the file is broken — verify with a direct Python read of the file before troubleshooting further, since the paste step itself has been an unreliable source of artifacts in past sessions.
+If the VSCode plugin's diff for a large file replacement looks too small or suspicious, verify with wc -l and head/tail before trusting it — the plugin can silently truncate large file overwrites. If a file gets mangled, generate it as a downloadable artifact instead and have me copy it into the repo manually. If pasted terminal output looks suspicious around word boundaries (especially near em dashes), verify with a direct Python read of the file before troubleshooting further.
 
-After every PR merge, check the Actions tab for "Deploy to Production" directly — don't rely on the GitHub merge screen's check-status badge, which can show "checks pending" even after the run has actually succeeded.
+After every PR merge, check the Actions tab for "Deploy to Production" directly — don't rely on the GitHub merge screen's check-status badge.
 
-Current state as of end of 22 June 2026 evening session:
+When iterating on templates, always check whether dropdown/select options use {{ c }} vs {{ c.name }} — picklist values from DB queries return model objects, not strings. Using {{ c }} will render the Python object repr, not the name. (NEW lesson — 23 June 2026)
+
+Current state as of end of 23 June 2026 afternoon session:
 
 COMPLETED THIS SESSION:
-    • recipes PR #25 — prep-ahead flag (extractor schema + system prompt, model columns, ALTER TABLE on live DB + init.sql updated, import save route, edit route, review.html toggle, form.html toggle). Merged, deployed, CI green (1m 23s). DB verified: DESCRIBE recipes confirmed both prep_ahead and prep_ahead_override columns present as tinyint(1) NOT NULL DEFAULT 0.
-    • recipes PR #26 — Cook Log (UC-08 + UC-15): cook_log.py route file (4 routes), cook_log/edit.html template, detail.html cook log card (summary + full log + edit/delete buttons), browse.html Cook History column + "Made it" button. Merged, deployed, CI green (1m 22s).
-    • recipes PR #27 — Fix cook log template URLs: /recipes/ prefix was missing from all cook log action= and href= values. 3 URL fixes across detail.html and browse.html. Merged, deployed, CI green (1m 24s). Live-verified: curl -sk -X POST https://mitchellnet.local/recipes/5/cook returned HTTP 302.
-    • mitchellnet-infra PR #40 — roadmap added to docs/mitchellnet-roadmap-updated.md; README updated to reference all docs files. Merged.
-    • BRD and HLA updated to v1.2 (UC-15 Cook Log, prep_ahead data model, cook log routes).
-    • main is at commit 55f13fa (recipes repo) as of end of session.
-
-DEFERRED, NO CHANGE THIS SESSION:
-    • Item 4 — wishlist → rating system: still deferred, need to see CookLog rating in actual use before deciding aggregation approach. Wishlist stays as-is.
+    • recipes PR #28 — Fix shopping list ingredient aggregation. main → 441ac62.
+    • recipes PR #29 — Dynamic cuisine list from DB + admin page at /recipes/admin/. main → fe9b357.
+    • recipes PR #30 — BRD/HLA updated to v1.3 (UC-16 AI meal planning, UC-17 recipe linking, dish_type, wishlist un-flag, admin extensions). main → 4d98707.
+    • recipes PR #31 — dish_type field full stack (11 files). main → c2f7c54.
+    • Test record cleanup — ✅ DONE (Andrew)
+    • Cuisine picklist expansion — ✅ DONE (18 cuisines in DB, dynamic)
+    • roadmap updated to reflect 23 June session
 
 KNOWN ISSUES — logged, not yet actioned, not blocking:
-    • AllRecipes.com import returns 403 Forbidden from services/fetcher.py — confirmed scraper/bot detection on AllRecipes' side. Other sources unaffected. Fix (e.g. realistic User-Agent header) would be its own small PR.
-    • GitHub Actions deprecation annotation: "Node.js 20 is deprecated... actions/setup-python@v5" forced onto Node.js 24. Not a failure. Flagged for a future mitchellnet-infra maintenance pass.
-    • Recipe file import (PDF/image upload) fails with 413 Request Entity Too Large above ~1MB — NGINX's default client_max_body_size. Workaround: rasterize large PDFs to a compressed JPEG before uploading. Real fix: client_max_body_size in both NGINX vhost files + check Flask MAX_CONTENT_LENGTH.
-    • Test recipe records (test, test, test3, test4) still in production DB — low priority cleanup.
-    • InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) may be a category page not a single recipe — Andrew to check the saved recipe's detail page.
+    • AllRecipes.com import returns 403 Forbidden — scraper/bot detection. Fix is its own small PR.
+    • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
+    • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
+    • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
+    • No UPS on server.
+    • recipes_db has no automated backup — HIGH PRIORITY infrastructure gap, see § 5.5.
 
 RECIPE MIGRATION STATUS:
-    • 44 of 48 URLs imported successfully (20 June first pass). porkStroganoff.pdf imported as compressed JPEG workaround.
+    • 44 of 48 URLs imported (20 June). porkStroganoff.pdf imported as compressed JPEG.
     • 4 URLs permanently discarded: AllRecipes (403), AgingLikeWine (404), Yummly (dead), FoodNetwork.ca (SSL error).
-    • REMAINING: 6 cookbook page references (Nagi cookbook + New Nagi cookbook) still need manual "Add Recipe" entry — no URL to import from.
+    • REMAINING: 6 cookbook page references (Nagi cookbook + New Nagi cookbook) — need manual "Add Recipe" entry.
 
-Also pending (lower priority, not blocking):
-    • Clean up test recipe records (test, test, test3, test4) from production DB
-    • RRSP app (Item 20): HLA review against existing MitchellNET stack still needed before build starts
-    • No UPS installed on the server — open follow-up from the 18→19 June power-loss reboot
-    • InternalWebServer backlog (NEW — 20 June 2026), neither started: (1) re-clone the repo to the standard ~/Documents/visualStudioCode/newProjectStructure/ location — see § 8.5; (2) site IA/structure cleanup — see § 8.5
-    • Expand Cuisine picklist: add at least Thai, Vietnamese, Chinese to CUISINES constant in app/routes/recipes.py — see § 5 for detail and open question
+NEXT SESSION FOCUS: recipes PR #7 — AI meal planning (UC-16). This is the largest remaining PR: new ai_planner service, ai_plan routes + templates, rejection_reasons + ai_suggestions DB tables (run migrations on server before coding), NGINX /ai-plan/ and /recipe-links/ location blocks in both InternalWebServer vhosts. Also address the recipes_db backup gap (§ 5.5) — set up cron job on server before or after PR #7.
 
-NEXT SESSION FOCUS: recipes PR #6 — meal plan + shopping list refinements.
-
-REPOS (all at ~/Documents/visualStudioCode/newProjectStructure/<repo> except InternalWebServer which is at ~/Documents/visualStudioCode/html/projects/InternalWebServer):
+REPOS (all at ~/Documents/visualStudioCode/newProjectStructure/<repo> except InternalWebServer):
     • fitness-tracker — https://mitchellnet.local/fitness/
-    • bench-instrument-service (BIS) — https://mitchellnet.local/api/bench/ and https://192.168.2.10/api/bench/ (both confirmed working as of 20 June 2026)
+    • bench-instrument-service (BIS) — https://mitchellnet.local/api/bench/ and https://192.168.2.10/api/bench/
     • mitchellnet-infra — scripts, runbook, architecture docs, roadmap
-    • InternalWebServer — NGINX config, static HTML
+    • InternalWebServer — NGINX config, static HTML (at ~/Documents/visualStudioCode/html/projects/InternalWebServer)
     • vaultwarden — https://vault.mitchellnet.local/
-    • recipes — https://mitchellnet.local/recipes/ (full UI + Claude import + prep-ahead + cook log all live; main at 55f13fa)
+    • recipes — https://mitchellnet.local/recipes/ (full UI + Claude import + prep-ahead + cook log + dish_type + admin all live; main at c2f7c54)
     • mitchellnet-rrsp — NOT YET CREATED (Item 20, planned)
 
-SERVER: Ubuntu iMac at 192.168.2.10, SSH as andrew@192.168.2.10. Services run from ~/services/<repo>/. All credentials in Vaultwarden at https://vault.mitchellnet.local/ and in server .env files. No UPS currently installed — an unexplained power-loss reboot occurred 18→19 June 2026; all containers recovered correctly on their own.
-
-Please start by confirming you have context. The next focus is recipes PR #6 — meal plan + shopping list refinements. Since this involves Flask service work, request recipes/README.md Development Notes before writing any code.
+SERVER: Ubuntu iMac at 192.168.2.10, SSH as andrew@192.168.2.10. Services run from ~/services/<repo>/. All credentials in Vaultwarden at https://vault.mitchellnet.local/ and in server .env files. No UPS currently installed.
 
 
 MitchellNET — Standing Instructions
@@ -242,7 +222,7 @@ Git Workflow
     • After merge, clean up via aaGitCleanupBranches (switches to main, deletes local+remote branch, pulls latest).
 
 Deploy Verification
-    • After merge, check the Actions tab for "Deploy to Production" — if it fails, check container logs via docker compose logs <service> --tail=50 before assuming the code change is broken (deploy health-check timing issues are a known false-positive).
+    • After merge, check the Actions tab for "Deploy to Production" — if it fails, check container logs via docker compose logs <service> --tail=50 before assuming the code change is broken.
 
 Repos
     • fitness-tracker (Flask) — https://192.168.2.10/fitness/ and https://mitchellnet.local/fitness/
@@ -250,7 +230,7 @@ Repos
     • mitchellnet-infra — scripts (aaGitPromote, aaGitCleanupBranches, etc.), runbook, architecture docs, roadmap
     • InternalWebServer — NGINX config, static HTML, docker-compose for nginx-proxy + nginx-prod
     • vaultwarden — https://vault.mitchellnet.local/ (subdomain vhost, exempt from bare-IP parity by design)
-    • recipes — https://mitchellnet.local/recipes/ (Flask + MariaDB, full UI + Claude import + prep-ahead + cook log all live)
+    • recipes — https://mitchellnet.local/recipes/ (Flask + MariaDB, full UI + Claude import + prep-ahead + cook log + dish_type + admin all live)
     • mitchellnet-rrsp — NOT YET CREATED (Item 20, planned)
 
 Bare-IP / Name Parity Standard (NEW — 20 June 2026)
