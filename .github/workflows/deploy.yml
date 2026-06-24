@@ -1,0 +1,56 @@
+name: Deploy mitchellnet-infra server scripts
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy server scripts to production
+    runs-on: self-hosted
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Deploy recipes DB backup script
+        run: |
+          set -euo pipefail
+          BACKUP_DIR="/home/andrew/backups/recipes"
+          SCRIPT_DEST="$BACKUP_DIR/backup_recipes_db.sh"
+          echo "=== Deploying backup_recipes_db.sh ==="
+          mkdir -p "$BACKUP_DIR"
+          cp server-scripts/backup_recipes_db.sh "$SCRIPT_DEST"
+          chmod +x "$SCRIPT_DEST"
+          echo "Script deployed to $SCRIPT_DEST"
+
+      - name: Install cron job if not present
+        run: |
+          set -euo pipefail
+          SCRIPT_DEST="/home/andrew/backups/recipes/backup_recipes_db.sh"
+          CRON_JOB="0 2 * * * $SCRIPT_DEST"
+          if crontab -l 2>/dev/null | grep -qF "$SCRIPT_DEST"; then
+            echo "Cron job already installed — skipping."
+          else
+            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            echo "Cron job installed: $CRON_JOB"
+          fi
+          echo "=== Current crontab ==="
+          crontab -l
+
+      - name: Deployment summary
+        run: |
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "🚀 mitchellnet-infra Deploy Complete!"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "Commit: $GITHUB_SHA"
+          echo "Deployed by: ${{ github.actor }}"
+          echo "Server scripts: ~/backups/recipes/backup_recipes_db.sh"
+          echo "Cron: daily at 02:00"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
