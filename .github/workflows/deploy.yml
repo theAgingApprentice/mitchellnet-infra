@@ -32,17 +32,17 @@ jobs:
 
       - name: Install cron job if not present
         run: |
-          set -euo pipefail
           SCRIPT_DEST="/home/andrew/backups/recipes/backup_recipes_db.sh"
           CRON_JOB="0 2 * * * $SCRIPT_DEST"
-          if crontab -l 2>/dev/null | grep -qF "$SCRIPT_DEST"; then
+          EXISTING_CRON=$(crontab -l 2>/dev/null || true)
+          if echo "$EXISTING_CRON" | grep -qF "$SCRIPT_DEST"; then
             echo "Cron job already installed — skipping."
           else
-            (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+            (echo "$EXISTING_CRON"; echo "$CRON_JOB") | crontab -
             echo "Cron job installed: $CRON_JOB"
           fi
           echo "=== Current crontab ==="
-          crontab -l
+          crontab -l 2>/dev/null || echo "(no crontab entries)"
 
       - name: Deployment summary
         run: |
