@@ -639,13 +639,13 @@ To restore `recipes_db` from a dump file:
 # 1. Copy the dump into the running container
 docker cp ~/backups/recipes/recipes_db_YYYY-MM-DD.sql recipes-db:/tmp/restore.sql
 
-# 2. Run the restore inside the container
+# 2. Run the mariadb restore inside the container
 docker exec -it recipes-db \
-    bash -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" recipes_db < /tmp/restore.sql'
+    bash -c 'mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" recipes_db < /tmp/restore.sql'
 
 # 3. Verify the restore
 docker exec -it recipes-db \
-    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT COUNT(*) FROM recipes_db.recipes;"
+    mariadb -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT COUNT(*) FROM recipes_db.recipes;"
 ```
 
 ### Future monitoring (Phase 3)
