@@ -37,11 +37,9 @@ mkdir -p "$BACKUP_DIR"
 
 log "INFO  Starting backup → $OUTFILE"
 
-docker exec "$CONTAINER" \
-    mysqldump -uroot -p"$DB_ROOT_PASSWORD" "$DB_NAME" > "$OUTFILE"
-
-if [ $? -ne 0 ]; then
-    log "ERROR mysqldump failed — check: docker logs $CONTAINER"
+if ! docker exec "$CONTAINER" \
+    mariadb-dump -uroot -p"$DB_ROOT_PASSWORD" "$DB_NAME" > "$OUTFILE"; then
+    log "ERROR mariadb-dump failed — check: docker logs $CONTAINER"
     rm -f "$OUTFILE"
     exit 1
 fi
