@@ -147,6 +147,14 @@ To rebuild the Ubuntu server from scratch:
 4. Trigger each service's deployment workflow from GitHub Actions (Actions tab → select workflow → Run workflow), or push a commit to `main` in each repo to trigger the deploy.
 
 5. Verify services are reachable at `https://mitchellnet.local`.
+6. Verify the recipes DB backup cron job was installed by bootstrap:
+
+   ```bash
+   crontab -l
+   # Should show: 0 2 * * * /home/andrew/backups/recipes/backup_recipes_db.sh
+   ~/backups/recipes/backup_recipes_db.sh
+   cat ~/backups/recipes/backup.log
+   ```
 
 ---
 
@@ -588,3 +596,58 @@ The server (`imac-server`) lost power and rebooted unattended sometime between *
 - `nginx-routing.md` fully audited and rewritten — see `InternalWebServer/docs/nginx-routing.md`
 
 **Known residual issue (low priority, unresolved):** the bare-IP docs page (`https://192.168.2.10/api/bench/docs`) shows a browser "Not Secure" badge despite a confirmed valid, trusted certificate. Investigated and ruled out: BIS's own HTML/JSON, both CDN-hosted Swagger UI assets, and all requests in a captured page load — no `http://` fetch found anywhere. Root cause not identified; functionality unaffected.
+
+---
+
+## Recipes DB Backup
+
+A nightly cron job dumps the `recipes_db` MariaDB database to the host filesystem and retains the last 3 dumps, automatically pruning older files to prevent disk fill.
+
+### Files
+
+- **Script:** `server-scripts/backup_recipes_db.sh` in `mitchellnet-infra` repo
+- **Deployed to:** `~/backups/recipes/backup_recipes_db.sh` on the server
+- **Dumps:** `~/backups/recipes/recipes_db_YYYY-MM-DD.sql`
+- **Log:** `~/backups/recipes/backup.log`
+
+### Cron schedule
+
+Runs nightly at 02:00 server time. Installed automatically by `server-setup/bootstrap.sh`.
+To verify:
+
+```bash
+crontab -l
+```
+
+### Manual run and verification
+
+```bash
+~/backups/recipes/backup_recipes_db.sh
+cat ~/backups/recipes/backup.log
+ls -lh ~/backups/recipes/*.sql
+```
+
+### Retention policy
+
+Keeps the 3 most recent `.sql` files. Older files are pruned automatically at the end of each successful run.
+
+### Restore procedure
+
+To restore `recipes_db` from a dump file:
+
+```bash
+# 1. Copy the dump into the running container
+docker cp ~/backups/recipes/recipes_db_YYYY-MM-DD.sql recipes-db:/tmp/restore.sql
+
+# 2. Run the restore inside the container
+docker exec -it recipes-db \
+    bash -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" recipes_db < /tmp/restore.sql'
+
+# 3. Verify the restore
+docker exec -it recipes-db \
+    mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "SELECT COUNT(*) FROM recipes_db.recipes;"
+```
+
+### Future monitoring (Phase 3)
+
+When the MitchellNET monitoring stack is built, add an SNMP trap or Grafana annotation on backup failure. The `TODO` comment in `backup_recipes_db.sh` marks the insertion point.

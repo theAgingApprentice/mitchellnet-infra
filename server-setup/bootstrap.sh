@@ -42,6 +42,22 @@ fi
 print_step "Installing scripts to /usr/local/bin..."
 bash "${REPO_ROOT}/scripts/aaInstall"
 
+print_step "Installing recipes DB backup script and cron job..."
+BACKUP_DIR="/home/andrew/backups/recipes"
+SCRIPT_SRC="${REPO_ROOT}/server-scripts/backup_recipes_db.sh"
+SCRIPT_DEST="${BACKUP_DIR}/backup_recipes_db.sh"
+mkdir -p "$BACKUP_DIR"
+cp "$SCRIPT_SRC" "$SCRIPT_DEST"
+chmod +x "$SCRIPT_DEST"
+# Install cron job if not already present
+CRON_JOB="0 2 * * * $SCRIPT_DEST"
+if crontab -l 2>/dev/null | grep -qF "$SCRIPT_DEST"; then
+    echo "Cron job already installed — skipping."
+else
+    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    echo "Cron job installed: $CRON_JOB"
+fi
+
 print_step "Bootstrap complete!"
 echo ""
 echo "Next steps (manual):"
@@ -57,5 +73,10 @@ echo ""
 echo "  2. Deploy each service from its own GitHub repo:"
 echo "       cd /home/andrew/services/<repo-name>"
 echo "       docker compose up -d"
+echo ""
+echo "  3. Verify the recipes DB backup cron job:"
+echo "       crontab -l"
+echo "       ~/backups/recipes/backup_recipes_db.sh"
+echo "       cat ~/backups/recipes/backup.log"
 echo ""
 echo "  See docs/runbook.md for full step-by-step details."
