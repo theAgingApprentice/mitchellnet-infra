@@ -69,7 +69,7 @@ Phase 0 — Security Remediation ✅ COMPLETE
 Phase 0.5 — Bare-IP / Name Parity Standard ✅ COMPLETE (20 June 2026)
 
 Feature/Build Work
-    • Item 15 (Recipes app) — PRs #1–#9 ✅ COMPLETE; PR #10 planned (6 cookbook manual entries)
+    • Item 15 (Recipes app) — PRs #1–#10 ✅ COMPLETE. Recipe migration 100% complete.
     • Item 20 (RRSP/RRIF app) — analysis complete, build not started
 
 Phase 3 — Monitoring
@@ -204,6 +204,6 @@ KNOWN ISSUES — logged, not yet actioned, not blocking:
 RECIPE MIGRATION STATUS:
     • 44 of 48 URLs imported. porkStroganoff.pdf imported as compressed JPEG.
     • 4 URLs permanently discarded: AllRecipes (403), AgingLikeWine (404), Yummly (dead), FoodNetwork.ca (SSL error).
-    • REMAINING: 6 cookbook page references (Nagi cookbook + New Nagi cookbook) — need manual "Add Recipe" entry (PR #10).
+    • COMPLETE: All cookbook entries handled manually via document upload (27 June 2026). Recipe migration 100% complete.
 
-NEXT SESSION FOCUS: recipes PR #10 — 6 cookbook manual entries (Nagi cookbook + New Nagi cookbook page references). At start of session request recipes/README.md and InternalWebServer/docs/nginx-routing.md per standing instructions.
+NEXT SESSION FOCUS: To be determined. At start of session request recipes/README.md and InternalWebServer/docs/nginx-routing.md per standing instructions.
