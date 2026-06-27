@@ -1,5 +1,5 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 27 June 2026 (end of session — recipes PRs #37–#38 shipped; BRD/HLA updated to v1.5)
+Last updated: 27 June 2026 (end of session — InternalWebServer re-cloned to standard location, PR #170 site IA fixes shipped; RC-Circuit project added to roadmap)
 
 Completed
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
@@ -11,29 +11,27 @@ Completed
     • ✅ Item 12: aaNewService template + SERVICE-TYPES.md + 4 compose templates — mitchellnet-infra PR #23 (15 June 2026)
     • ✅ Item 13: BIS Phase 3 — dashboard, bench_client.py, webhooks — BIS PRs #12–#16, mitchellnet-infra PR #25 (15 June 2026)
     • ✅ Item 14: Vaultwarden — live at https://vault.mitchellnet.local/ (16 June 2026)
-    • ✅ Item 15: Recipes app — scaffold + full UI complete (17 June 2026) ◦ recipes repo created via aaNewService recipes --type python-flask-db ◦ Flask + MariaDB running at https://mitchellnet.local/recipes/ ◦ Full CI/CD pipeline: test → deploy → health check all passing ◦ PRs #1–#13: scaffold, core models, routes, meal plan, shopping list, HTML UI, NGINX routing fixes, template fixes, save redirect fix, README dev notes ◦ Browse, add, edit, delete, meal plan, shopping list all functional
+    • ✅ Item 15: Recipes app — fully complete (27 June 2026). PRs #1–#38 shipped. Recipe migration 100% complete. All UCs delivered.
     • ✅ mitchellnet-infra PR #30: Fix aaNewService template backlog items A–F (17 June 2026)
     • ✅ mitchellnet-infra PR #31: docs updated with NGINX multi-prefix exception, url_for warning, HTML template warning (17 June 2026)
     • ✅ InternalWebServer: nginx-routing.md Flask Service Routing Patterns section added (17 June 2026)
     • ✅ InternalWebServer website updates (17 June 2026)
     • ✅ Anthropic API account created (17 June 2026)
-    • ✅ RRSP/RRIF Withdrawal Planning — analysis complete, documents produced (18 June 2026)
+    • ✅ RRSP/RRIF Withdrawal Planning — analysis complete, three documents produced (BRD, HLA, financial model — 18 June 2026)
     • ✅ 18 June 2026 session — recipes PR #3 (Claude API import) completed and hardened
     • ✅ 20 June 2026 session — Bare-IP routing & cert parity fixed: mitchellnet-infra PRs #36–#39, InternalWebServer PRs #167–#168
     • ✅ 20 June 2026 evening session — recipes PR #4 (5 of 7 items) + recipe data migration first pass (44 of 48 recipes imported)
-    • ✅ 22 June 2026 session — recipes PR #4 item 6 (prep-ahead flag), PR #5 (Cook Log UC-08 + UC-15), PR #5 URL fix. BRD/HLA updated to v1.2. main at 55f13fa.
+    • ✅ 22 June 2026 session — recipes PR #4 item 6 (prep-ahead flag), PR #5 (Cook Log UC-08 + UC-15), PR #5 URL fix. BRD/HLA updated to v1.2.
     • ✅ 23 June 2026 session — recipes PRs #28–#31 all shipped and verified
-    • ✅ 26 June 2026 session — recipes PRs #32–#35 + InternalWebServer PR #169 all shipped and verified:
-        ◦ DB backup cron job — confirmed live and healthy: 3 consecutive nightly runs. § 5.5 gap CLOSED.
-        ◦ recipes PR #32 — AI meal planning (UC-16). main → 0d9d473.
-        ◦ InternalWebServer PR #169 — NGINX /ai-plan/ + /recipe-links/ blocks added to both vhosts. main → 699de06.
-        ◦ recipes PR #33 — Searchable Help page at /recipes/help. main → 0bec434.
-        ◦ recipes PR #34 — Meal Plan and Shopping List nav links added to browse page. main → c8fdc55.
-        ◦ recipes PR #35 — Recipes back link added to Meal Plan and Shopping List pages. main → 0292f19.
-    • ✅ 27 June 2026 session — recipes PRs #37–#38 shipped and verified:
-        ◦ recipes PR #37 — Recipe linking (UC-17): recipe_links table, RecipeLink model, recipe_links blueprint, bidirectional linked recipes card on detail page. recipe_links table applied to live DB via docker exec. main → ac46e20.
-        ◦ recipes PR #38 — Wishlist un-flag prompt (UC-08 enhancement): wishlist_prompt routes (GET + POST) + wishlist_prompt.html template. Prompt fires after cooking any wishlist recipe; Yes removes flag, No keeps it. main → 2245645.
-        ◦ BRD and HLA updated to v1.5.
+    • ✅ 26 June 2026 session — recipes PRs #32–#35 + InternalWebServer PR #169 all shipped and verified
+    • ✅ 27 June 2026 session:
+        ◦ recipes PR #37 — Recipe linking (UC-17). main → ac46e20.
+        ◦ recipes PR #38 — Wishlist un-flag prompt (UC-08 enhancement). main → 2245645.
+        ◦ recipes BRD and HLA updated to v1.5.
+        ◦ Recipe migration 100% complete (2 new URLs imported, 3 duplicates confirmed, 5 Nagi cookbook entries added manually).
+        ◦ InternalWebServer re-cloned to standard location: ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer. ✅
+        ◦ InternalWebServer PR #170 — Site IA fixes: corrected include paths in reference.html and tools.html, fixed stale links in projects.html, updated about.html (NGINX, removed PII, version 2.1.0). main → 84706a5.
+        ◦ AllRecipes 403 known issue — closed, not actioning (recipe permanently discarded).
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -69,33 +67,33 @@ Phase 0 — Security Remediation ✅ COMPLETE
 Phase 0.5 — Bare-IP / Name Parity Standard ✅ COMPLETE (20 June 2026)
 
 Feature/Build Work
-    • Item 15 (Recipes app) — PRs #1–#10 ✅ COMPLETE. Recipe migration 100% complete.
-    • Item 20 (RRSP/RRIF app) — analysis complete, build not started
+    • Item 15 (Recipes app) — ✅ COMPLETE. All PRs shipped, recipe migration 100% done.
+    • Item 20 (RRSP/RRIF app) — Analysis complete (BRD, HLA, financial model produced 18 June 2026). Build not started. Prerequisite: HLA review against existing MitchellNET stack before any code is written.
+    • Item 21 (RC-Circuit) — New project. See § 9 below.
+    • InternalWebServer — re-clone ✅ COMPLETE (27 June 2026). Site IA fixes ✅ COMPLETE (PR #170). Remaining backlog: site IA redesign (not yet scoped).
 
-Phase 3 — Monitoring
-Phase 4 — IoT
+Phase 3 — Monitoring: Not yet scoped.
+Phase 4 — IoT: Not yet scoped.
 
     4. aaNewService — Known Issues
 Items A–F fixed in mitchellnet-infra PR #30 (17 June 2026). ✅
 Checklist updated 20 June 2026 (mitchellnet-infra PR #37) to explicitly name both NGINX vhost files. ✅
 
-    5. Recipes App — Remaining PRs
-    • PR #10 (planned) — 6 cookbook page references manual entry (Nagi cookbook + New Nagi cookbook page references)
+    5. Recipes App — Remaining Work
     • Recipe-level rating system — deferred pending CookLog usage review
-    • fetcher.py AllRecipes 403 — low priority, logged 20 June
     • Recipe file upload 413 fix — low priority (client_max_body_size in both NGINX vhosts + Flask MAX_CONTENT_LENGTH)
     • GitHub Actions deprecation annotation (actions/setup-python@v5 / Node.js 20) — low priority, flagged for mitchellnet-infra maintenance pass
     • Full browser functional test of AI meal planning flow — not yet done (Andrew to test suggest → review → accept/reject → meal plan populated)
 
     5.5 Recipes App — DB Backup ✅ COMPLETE (26 June 2026)
-Nightly cron job running on server. Script: ~/backups/recipes/backup_recipes_db.sh. Dumps to ~/backups/recipes/recipes_db_YYYY-MM-DD.sql. Retains last 3. Log: ~/backups/recipes/backup.log. Confirmed: 3 consecutive successful runs (24, 25, 26 June). Restore procedure documented in runbook.md.
+Nightly cron job running on server. Script: ~/backups/recipes/backup_recipes_db.sh. Dumps to ~/backups/recipes/recipes_db_YYYY-MM-DD.sql. Retains last 3. Log: ~/backups/recipes/backup.log. Confirmed: 3 consecutive successful runs. Restore procedure documented in runbook.md.
 
     6. RRSP/RRIF Withdrawal Planning App — Item 20
-Planning and analysis complete. Three documents produced. Build not yet started. HLA review against existing MitchellNET stack still pending before any code is written.
+Planning and analysis complete. Three documents produced (BRD, HLA, financial model). Build not yet started.
+Outstanding prerequisite: HLA review against existing MitchellNET stack (service type, NGINX routing, CI/CD pattern) before any code is written.
 
     6.5 Known Issues — Logged, Not Yet Actioned
     • "Not Secure" browser badge on https://192.168.2.10/api/bench/docs despite a valid, trusted cert — root cause not identified. Low priority, functionality unaffected.
-    • AllRecipes.com import returns 403 Forbidden from services/fetcher.py — scraper/bot detection on AllRecipes' side.
     • GitHub Actions deprecation annotation: "Node.js 20 is deprecated... actions/setup-python@v5" — not a failure. Flagged for mitchellnet-infra maintenance pass.
     • Recipe file import fails with 413 Request Entity Too Large above ~1MB. Workaround: rasterize large PDFs to compressed JPEG.
     • InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) may be a category page not a single recipe — Andrew to check the saved recipe's detail page.
@@ -140,17 +138,46 @@ Navigation: Home | Engineering | Workspaces | Infrastructure | Projects | About
 
 Hosted Apps
     • /fitness/ — Fitness Tracker
-    • /recipes/ — Recipes app (Flask + MariaDB)
+    • /recipes/ — Recipes app (Flask + MariaDB) ✅ Complete
     • /rrsp/ — RRSP/RRIF Withdrawal Planning app (planned — Item 20)
 
 Infrastructure → Hosted Services
     • Vaultwarden — https://vault.mitchellnet.local/
 
     8.5 InternalWebServer — Backlog / Maintenance
-    1. Re-clone InternalWebServer to the standard repo location (~/Documents/visualStudioCode/newProjectStructure/InternalWebServer). Currently at ~/Documents/visualStudioCode/html/projects/InternalWebServer — the one exception to the newProjectStructure pattern.
-    2. Site IA / structure cleanup — audit which pages are linked vs. orphaned, then redesign. Not scoped yet.
+    1. Re-clone to standard location ✅ COMPLETE (27 June 2026) — now at ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer
+    2. Site IA fixes ✅ COMPLETE (27 June 2026) — PR #170: include path fixes, stale link fixes, about.html updated
+    3. Site IA redesign — audit which pages are linked vs. orphaned, redesign nav/structure. Not yet scoped.
 
-    9. Resume Prompt (paste this verbatim to start the next session)
+    9. RC-Circuit — Item 21 (New Project)
+
+    Overview
+    A rewrite of RC_Experiment1.py from the electricityExperiment-AcVsDc repo. The goal is to compare simulated RC circuit behaviour against live bench instrument measurements and provide an AI analysis of any similarities and differences.
+
+    Key facts
+    • Source repo: https://github.com/theAgingApprentice/electricityExperiment-AcVsDc
+    • File to rewrite: RC_Experiment1.py (existing docs in that repo explain the experiment in detail)
+    • New repo name: RC-Circuit (to be created)
+    • Dev environment: Mac Studio (macOS) — code developed and edited on Mac
+    • Run environment: Windows OS running under Parallels Desktop on the same Mac Studio
+    • Depends on: bench-instrument-service (BIS) — live instrument readings via the BIS API
+
+    What it will do
+    1. Run an RC circuit simulation (replicating what RC_Experiment1.py does today)
+    2. Simultaneously read live measurements from real bench instruments via the BIS API (oscilloscope, multimeter, signal generator, power supply as needed)
+    3. Compare simulated results against live instrument readings
+    4. Call Claude API to provide a plain-English analysis of similarities and differences between the simulation and live measurements
+
+    Prerequisites before build starts
+    • Review electricityExperiment-AcVsDc repo docs to understand the existing experiment scope and simulation approach
+    • Confirm which BIS endpoints are needed (waveform capture, multimeter logging, etc.)
+    • Decide on repo structure (pure Python script vs. Flask app vs. something else)
+    • Decide on output format (terminal, HTML report, saved file)
+    • Confirm Parallels/Windows Python environment and how the BIS API will be reached from Windows (same LAN — 192.168.2.10)
+
+    Status: 🔲 Not yet started — prerequisites above must be resolved before coding begins.
+
+    10. Resume Prompt (paste this verbatim to start the next session)
 
 Resuming MitchellNET work.
 
@@ -189,21 +216,25 @@ FLASK + NGINX: At the start of any session involving Flask services or NGINX rou
 Current state as of end of 27 June 2026 session:
 
 COMPLETED THIS SESSION:
-    • recipes PR #37 — Recipe linking (UC-17) full stack. recipe_links table applied to live DB via docker exec. main → ac46e20.
-    • recipes PR #38 — Wishlist un-flag prompt (UC-08 enhancement). main → 2245645.
-    • BRD and HLA updated to v1.5.
+    • recipes PRs #37–#38 — Recipe linking (UC-17) and wishlist un-flag prompt (UC-08). Both live and verified.
+    • recipes BRD and HLA updated to v1.5.
+    • Recipe migration 100% complete.
+    • InternalWebServer re-cloned to ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer. ✅
+    • InternalWebServer PR #170 — Site IA fixes live and verified. main → 84706a5.
+    • AllRecipes 403 known issue closed — not actioning.
+    • RC-Circuit project (Item 21) added to roadmap.
+
+ACTIVE PROJECTS / NEXT SESSION OPTIONS:
+    • Item 20 — RRSP/RRIF app: HLA review against MitchellNET stack, then build
+    • Item 21 — RC-Circuit: review electricityExperiment-AcVsDc docs, scope the rewrite, create new repo
+    • InternalWebServer § 8.5 item 3 — site IA redesign (not yet scoped)
+    • Phase 3 — Monitoring (not yet scoped)
+    • Phase 4 — IoT (not yet scoped)
 
 KNOWN ISSUES — logged, not yet actioned, not blocking:
-    • AllRecipes.com import returns 403 Forbidden — scraper/bot detection. Fix is its own small PR.
     • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
     • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
     • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
     • No UPS on server.
     • AI meal planning — full browser functional test not yet done (Andrew to test end-to-end flow).
-
-RECIPE MIGRATION STATUS:
-    • 44 of 48 URLs imported. porkStroganoff.pdf imported as compressed JPEG.
-    • 4 URLs permanently discarded: AllRecipes (403), AgingLikeWine (404), Yummly (dead), FoodNetwork.ca (SSL error).
-    • COMPLETE: All cookbook entries handled manually via document upload (27 June 2026). Recipe migration 100% complete.
-
-NEXT SESSION FOCUS: To be determined. At start of session request recipes/README.md and InternalWebServer/docs/nginx-routing.md per standing instructions.
+    • "Not Secure" badge on https://192.168.2.10/api/bench/docs — root cause unknown, low priority.
