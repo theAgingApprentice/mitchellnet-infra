@@ -1,5 +1,5 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 23 June 2026 (end of afternoon session — recipes PRs #28–#31 shipped; BRD/HLA updated to v1.3; new features scoped: UC-16 AI meal planning, UC-17 recipe linking, dish_type field)
+Last updated: 26 June 2026 (end of session — recipes PRs #32–#35 shipped; InternalWebServer PR #169; DB backup confirmed live; AI meal planning live; Help page live; nav links added)
 
 Completed
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
@@ -22,7 +22,14 @@ Completed
     • ✅ 20 June 2026 session — Bare-IP routing & cert parity fixed: ◦ mitchellnet-infra PRs #36–#39, InternalWebServer PRs #167–#168 ◦ Bare-IP Parity Standard documented and enforced by aaNewService checklist ◦ nginx-routing.md fully audited and rewritten
     • ✅ 20 June 2026 evening session — recipes PR #4 (5 of 7 items) + recipe data migration first pass (44 of 48 recipes imported)
     • ✅ 22 June 2026 session — recipes PR #4 item 6 (prep-ahead flag), PR #5 (Cook Log UC-08 + UC-15), PR #5 URL fix. BRD/HLA updated to v1.2. main at 55f13fa.
-    • ✅ 23 June 2026 session — recipes PRs #28–#31 all shipped and verified: ◦ recipes PR #28 — Fix shopping list ingredient aggregation: quantities now collected and combined with + instead of first-seen-wins. Merged, deployed, CI green (1m 20s). main → 441ac62. ◦ recipes PR #29 — Dynamic cuisine list from DB + admin page: cuisines table seeded with all 18 live values; CUISINES hardcoded constant removed; Cuisine model added; admin page at /recipes/admin/ with Add Cuisine form; ⚙ Admin link in every page header. Merged, deployed, CI green (1m 19s). main → fe9b357. ◦ recipes PR #30 — BRD and HLA updated to v1.3: UC-16 AI Meal Planning, UC-17 Recipe Linking, dish_type field, wishlist un-flag prompt, admin picklist extensions (dish_types, rejection_reasons), ai_suggestions tracking table. Merged, deployed. main → 4d98707. ◦ recipes PR #31 — dish_type field full stack: DB migration (dish_type column on recipes + dish_types table seeded with 7 values); DishType model; browse/add/edit/import routes updated; form.html + browse.html + detail.html + review.html templates updated; browse cuisine filter bug fixed (was using string instead of object .name); dish_type filter added to browse; admin Dish Types section added; extractor schema + system prompt updated for auto-detection. Merged, deployed, CI green (1m 22s). main → c2f7c54. ◦ Test record cleanup — ✅ DONE (Andrew cleaned up test, test, test3, test4 records from production DB) ◦ Cuisine picklist expansion — ✅ DONE (all 18 live cuisines now in DB, dynamic from cuisines table)
+    • ✅ 23 June 2026 session — recipes PRs #28–#31 all shipped and verified: ◦ recipes PR #28 — Fix shopping list ingredient aggregation. main → 441ac62. ◦ recipes PR #29 — Dynamic cuisine list from DB + admin page at /recipes/admin/. main → fe9b357. ◦ recipes PR #30 — BRD and HLA updated to v1.3. main → 4d98707. ◦ recipes PR #31 — dish_type field full stack (11 files). main → c2f7c54. ◦ Test record cleanup ✅. Cuisine picklist expansion ✅ (18 cuisines in DB, dynamic).
+    • ✅ 26 June 2026 session — recipes PRs #32–#35 + InternalWebServer PR #169 all shipped and verified:
+        ◦ DB backup cron job — confirmed live and healthy: 3 consecutive nightly runs (24, 25, 26 June at 02:00), 3/3 retention working, backup.log clean. Script at ~/backups/recipes/backup_recipes_db.sh. § 5.5 gap CLOSED.
+        ◦ recipes PR #32 — AI meal planning (UC-16): ai_planner service, ai_plan routes, suggest.html + review.html templates, RejectionReason + AiSuggestion models, admin Rejection Reasons section, AI Suggest button on meal plan page, init.sql updated. Merged, CI green (1m 41s). main → 0d9d473.
+        ◦ InternalWebServer PR #169 — NGINX /ai-plan/ and /recipe-links/ location blocks added to both prod.conf and 000-bareip.conf. Bare-IP parity maintained. Merged, CI green (19s). main → 699de06.
+        ◦ recipes PR #33 — Searchable Help page at /recipes/help with "? Help" link in every page header (11 topic sections, client-side JS search). Merged, CI green (3m 17s). main → 0bec434.
+        ◦ recipes PR #34 — Meal Plan and Shopping List nav links added to browse page header. Merged, CI green (1m 23s). main → c8fdc55.
+        ◦ recipes PR #35 — Recipes back link added to Meal Plan and Shopping List pages; Shopping List button updated with 🛒 emoji. Merged, CI green (1m 39s). main → 0292f19.
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -58,7 +65,7 @@ Phase 0 — Security Remediation ✅ COMPLETE
 Phase 0.5 — Bare-IP / Name Parity Standard ✅ COMPLETE (20 June 2026) — all path-based services now reachable identically via mitchellnet.local and 192.168.2.10; enforced going forward by aaNewService
 
 Feature/Build Work
-    • Item 15 (Recipes app) — PRs #4, #5, #6 ✅ COMPLETE; PRs #7–#10 planned (see § 5)
+    • Item 15 (Recipes app) — PRs #1–#6 ✅ COMPLETE; PR #7 ✅ COMPLETE (26 June); PRs #8–#10 planned (see § 5)
     • Item 20 (RRSP/RRIF app) — analysis complete, build not started
 
 Phase 3 — Monitoring
@@ -69,28 +76,18 @@ Items A–F fixed in mitchellnet-infra PR #30 (17 June 2026). ✅
 Checklist updated 20 June 2026 (mitchellnet-infra PR #37) to explicitly name both NGINX vhost files. ✅
 
     5. Recipes App — Remaining PRs
-    • PR #6 — ✅ COMPLETE (23 June 2026): shopping list aggregation fix (PR #28) + dynamic cuisine list + admin page (PR #29) + dish_type full stack (PR #31)
-    • PR #7 (planned) — AI meal planning (UC-16): ai_planner service, ai_plan routes + templates, rejection_reasons + ai_suggestions DB tables, NGINX /ai-plan/ blocks in both vhosts
+    • PR #7 — ✅ COMPLETE (26 June 2026): AI meal planning (UC-16) — ai_planner service, ai_plan routes + templates, rejection_reasons + ai_suggestions models, admin Rejection Reasons section, AI Suggest button, init.sql updated. InternalWebServer PR #169 — NGINX /ai-plan/ + /recipe-links/ blocks both vhosts.
     • PR #8 (planned) — Recipe linking (UC-17): recipe_links DB table, recipe_links routes, detail + form template updates
     • PR #9 (planned) — Wishlist un-flag prompt (UC-08 enhancement): prompt after "We made this!" on wishlist recipes
     • PR #10 (planned) — 6 cookbook recipes manual entry (Nagi cookbook + New Nagi cookbook page references)
-    • InternalWebServer PR (planned, with PR #7) — add /ai-plan/ and /recipe-links/ location blocks to prod.conf + 000-bareip.conf
     • Recipe-level rating system — deferred pending CookLog usage review
     • fetcher.py AllRecipes 403 — low priority, logged 20 June
     • Recipe file upload 413 fix — low priority (client_max_body_size in both NGINX vhosts + Flask MAX_CONTENT_LENGTH)
     • GitHub Actions deprecation annotation (actions/setup-python@v5 / Node.js 20) — low priority, flagged for mitchellnet-infra maintenance pass
+    • Full browser functional test of AI meal planning flow — not yet done (Andrew to test suggest → review → accept/reject → meal plan populated)
 
-    5.5 Recipes App — DB Backup Gap (NEW — 23 June 2026)
-No automated backup of the recipes_db MariaDB volume exists. Confirmed: no crontab for user andrew on the server. The recipes_recipes_data Docker volume holds all recipe data and would be lost if the volume is corrupted or the server is rebuilt without a prior dump.
-
-Required fix (not yet implemented):
-    • Add a cron job on the server to run mysqldump inside the recipes-db container nightly, saving to a dated file on the host (e.g. ~/backups/recipes/recipes_db_YYYY-MM-DD.sql)
-    • Retain last N dumps (suggest 7 days)
-    • Verify the backup file is non-zero after each run
-    • Document the restore procedure in runbook.md
-    • Consider whether the same gap exists for other MariaDB-backed services (fitness-tracker uses SQLite — not affected; BIS uses InfluxDB — check separately)
-
-This is the highest-priority infrastructure item not yet addressed.
+    5.5 Recipes App — DB Backup ✅ COMPLETE (26 June 2026)
+Nightly cron job running on server. Script: ~/backups/recipes/backup_recipes_db.sh. Dumps to ~/backups/recipes/recipes_db_YYYY-MM-DD.sql. Retains last 3. Log: ~/backups/recipes/backup.log. Confirmed: 3 consecutive successful runs (24, 25, 26 June). Restore procedure documented in runbook.md.
 
     6. RRSP/RRIF Withdrawal Planning App — Item 20
 Planning and analysis complete. Three documents produced. Build not yet started. HLA review against existing MitchellNET stack still pending before any code is written.
@@ -102,7 +99,6 @@ Planning and analysis complete. Three documents produced. Build not yet started.
     • Recipe file import fails with 413 Request Entity Too Large above ~1MB — NGINX's default client_max_body_size. Workaround: rasterize large PDFs to compressed JPEG. Real fix: client_max_body_size in both NGINX vhost files + check Flask MAX_CONTENT_LENGTH.
     • InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) may be a category page not a single recipe — Andrew to check the saved recipe's detail page.
     • No UPS installed on the server — open follow-up from the 18→19 June power-loss reboot.
-    • recipes_db has no automated backup — see § 5.5 for detail and required fix.
 
     7. Lessons Learned — NGINX + Flask Routing
 At the start of any new session involving Flask services or NGINX routing, request these two documents before writing any code:
@@ -129,6 +125,7 @@ Summary of key rules
     • A documented warning doesn't prevent a mistake — the durable fix is updating tooling (aaNewService checklist), not re-stating the warning
     • When a doc claims to be a complete reference, verify against live files (cat / diff)
     • Pasted terminal output can introduce copy/paste artifacts — verify with direct Python file read before assuming the file is broken
+    • DB changes must go through the repo (init.sql + models), not directly on the server — so a rebuild can reproduce the full schema from scratch
 
 7.7 Lessons Learned — One-Item-Per-PR Workflow & Live Verification
     • Split multi-item scoped work into one PR per item — keeps diffs small and reviewable
@@ -154,45 +151,39 @@ Infrastructure → Hosted Services
 
 Resuming MitchellNET work.
 
-We use this workflow: you tell me step-by-step what to either (1) run on the server SSH terminal, (2) run on the Dev Mac terminal, or (3) tell the Claude plugin in VSCode to do — one repo at a time, since I have to switch VSCode windows per repo. Always tell me which repo I should be working in before giving instructions. I paste back outputs/diffs for your review before we proceed. For commits we use aaGitPromote <branch> "<msg>" and aaGitCleanupBranches (never delete branches via GitHub UI — I don't click "Delete branch" on GitHub either, the script handles it). PRs are merged via GitHub UI after CI passes. For literal file dumps, give me raw cat/grep commands rather than asking the plugin to "show" files. Always pipe git diff through cat to prevent pager hang: git diff | cat. After any edit, get the diff before promoting.
+Workflow rules — read these carefully and follow them for every instruction in this session:
 
-We stay on the main branch at all times in the Dev Mac terminal — aaGitPromote creates the feature branch itself, commits, and pushes; I never manually git checkout -b.
+INSTRUCTION FORMAT: Every instruction you give me must clearly state one of the following at the start:
+    • SERVER TERMINAL — command to run via SSH on andrew@192.168.2.10
+    • DEV MAC TERMINAL — command to run in the terminal on my Mac Studio (state which repo directory I should be in and confirm I am on the main branch)
+    • VSCODE CLAUDE PLUGIN — instruction to give to the Claude plugin in VSCode (state which repo window and which branch)
+Never mix instructions for two repos in a single step. Never give a VSCode instruction without naming the repo and branch first.
 
-At the start of any session involving Flask services or NGINX routing, request these two docs before writing any code:
+ONE REPO AT A TIME: I have separate VSCode windows per repo. Always complete all work in one repo before switching to another.
+
+COMMAND RULES:
+    • Always pipe git diff through cat: git diff | cat
+    • Always get a diff before promoting: after any edit, run git diff | cat and paste back for review
+    • Stay on main branch in all terminals at all times — aaGitPromote creates the feature branch itself
+    • For file contents, give me raw cat/grep commands to run in the terminal rather than asking the VSCode plugin to "show" files
+    • Promote via: aaGitPromote <branch-name> "<commit message>" (run from main in the repo terminal)
+    • Clean up via: aaGitCleanupBranches (after PR is merged in GitHub UI)
+    • Never click "Delete branch" in GitHub UI — the cleanup script handles it
+
+PR WORKFLOW:
+    • I open and merge PRs via GitHub UI after CI passes
+    • After merge, always check the Actions tab for "Deploy to Production" directly — don't rely on the GitHub merge screen's check-status badge
+
+DB CHANGES: Never make DB changes directly on the server. All schema changes go through init.sql and models in the repo, deployed via CI/CD. This ensures a server rebuild can reproduce the full schema from scratch.
+
+FLASK + NGINX: At the start of any session involving Flask services or NGINX routing, request these two docs before writing any code:
     • recipes/README.md — Development Notes section
     • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
 
-If the VSCode plugin's diff for a large file replacement looks too small or suspicious, verify with wc -l and head/tail before trusting it — the plugin can silently truncate large file overwrites. If a file gets mangled, generate it as a downloadable artifact instead and have me copy it into the repo manually. If pasted terminal output looks suspicious around word boundaries (especially near em dashes), verify with a direct Python read of the file before troubleshooting further.
-
-After every PR merge, check the Actions tab for "Deploy to Production" directly — don't rely on the GitHub merge screen's check-status badge.
-
-When iterating on templates, always check whether dropdown/select options use {{ c }} vs {{ c.name }} — picklist values from DB queries return model objects, not strings. Using {{ c }} will render the Python object repr, not the name. (NEW lesson — 23 June 2026)
-
-Current state as of end of 23 June 2026 afternoon session:
-
-COMPLETED THIS SESSION:
-    • recipes PR #28 — Fix shopping list ingredient aggregation. main → 441ac62.
-    • recipes PR #29 — Dynamic cuisine list from DB + admin page at /recipes/admin/. main → fe9b357.
-    • recipes PR #30 — BRD/HLA updated to v1.3 (UC-16 AI meal planning, UC-17 recipe linking, dish_type, wishlist un-flag, admin extensions). main → 4d98707.
-    • recipes PR #31 — dish_type field full stack (11 files). main → c2f7c54.
-    • Test record cleanup — ✅ DONE (Andrew)
-    • Cuisine picklist expansion — ✅ DONE (18 cuisines in DB, dynamic)
-    • roadmap updated to reflect 23 June session
-
-KNOWN ISSUES — logged, not yet actioned, not blocking:
-    • AllRecipes.com import returns 403 Forbidden — scraper/bot detection. Fix is its own small PR.
-    • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
-    • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
-    • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
-    • No UPS on server.
-    • recipes_db has no automated backup — HIGH PRIORITY infrastructure gap, see § 5.5.
-
-RECIPE MIGRATION STATUS:
-    • 44 of 48 URLs imported (20 June). porkStroganoff.pdf imported as compressed JPEG.
-    • 4 URLs permanently discarded: AllRecipes (403), AgingLikeWine (404), Yummly (dead), FoodNetwork.ca (SSL error).
-    • REMAINING: 6 cookbook page references (Nagi cookbook + New Nagi cookbook) — need manual "Add Recipe" entry.
-
-NEXT SESSION FOCUS: recipes PR #7 — AI meal planning (UC-16). This is the largest remaining PR: new ai_planner service, ai_plan routes + templates, rejection_reasons + ai_suggestions DB tables (run migrations on server before coding), NGINX /ai-plan/ and /recipe-links/ location blocks in both InternalWebServer vhosts. Also address the recipes_db backup gap (§ 5.5) — set up cron job on server before or after PR #7.
+PLUGIN WARNINGS:
+    • If the VSCode plugin's diff for a large file replacement looks too small or suspicious, verify with wc -l and head/tail before trusting it — the plugin can silently truncate large file overwrites
+    • If a file gets mangled, generate it as a downloadable artifact instead and have me copy it into the repo manually
+    • If pasted terminal output looks suspicious around word boundaries (especially near em dashes), verify with a direct cat of the file before troubleshooting further
 
 REPOS (all at ~/Documents/visualStudioCode/newProjectStructure/<repo> except InternalWebServer):
     • fitness-tracker — https://mitchellnet.local/fitness/
@@ -200,7 +191,7 @@ REPOS (all at ~/Documents/visualStudioCode/newProjectStructure/<repo> except Int
     • mitchellnet-infra — scripts, runbook, architecture docs, roadmap
     • InternalWebServer — NGINX config, static HTML (at ~/Documents/visualStudioCode/html/projects/InternalWebServer)
     • vaultwarden — https://vault.mitchellnet.local/
-    • recipes — https://mitchellnet.local/recipes/ (full UI + Claude import + prep-ahead + cook log + dish_type + admin all live; main at c2f7c54)
+    • recipes — https://mitchellnet.local/recipes/ (Flask + MariaDB, full UI + Claude import + prep-ahead + cook log + dish_type + admin + AI meal planning + help page all live; main at 0292f19)
     • mitchellnet-rrsp — NOT YET CREATED (Item 20, planned)
 
 SERVER: Ubuntu iMac at 192.168.2.10, SSH as andrew@192.168.2.10. Services run from ~/services/<repo>/. All credentials in Vaultwarden at https://vault.mitchellnet.local/ and in server .env files. No UPS currently installed.
@@ -208,16 +199,17 @@ SERVER: Ubuntu iMac at 192.168.2.10, SSH as andrew@192.168.2.10. Services run fr
 
 MitchellNET — Standing Instructions
 Workflow
-    • You (Claude) plan/review; I execute via two channels: (1) server terminal commands, (2) instructions to the Claude plugin in VSCode for file edits within a repo.
-    • Repos are separate VSCode windows — always tell me explicitly which repo I should be working in before giving instructions, and don't mix instructions for two repos in one step.
-    • For literal file dumps, give me raw cat/grep/git diff commands to run myself rather than asking the VSCode plugin to "show" or "summarize" a file.
+    • You (Claude) plan/review; I execute via three channels: (1) SERVER TERMINAL — SSH commands on the server, (2) DEV MAC TERMINAL — terminal commands in a repo on the Mac Studio, (3) VSCODE CLAUDE PLUGIN — file edits via the Claude plugin in a named repo window.
+    • Every instruction must be labelled with which channel, which repo, and which branch before any command or instruction text.
+    • Repos are separate VSCode windows — always complete work in one repo before switching, and never mix instructions for two repos in one step.
+    • For literal file dumps, give raw cat/grep/git diff commands to run in the DEV MAC TERMINAL rather than asking the VSCode plugin to "show" or "summarize" a file.
     • Always pipe git diff through cat to prevent pager hang: git diff | cat
     • After any edit, get the git diff | cat before promoting, to catch stray changes.
     • Stay on main in the terminal at all times — aaGitPromote creates the branch itself.
     • If I paste terminal output back and something looks like a word got merged or split unexpectedly (especially around em dashes or punctuation), treat it as a possible paste artifact first — verify against the real file directly before assuming the file itself is broken.
 
 Git Workflow
-    • Commit via aaGitPromote <branch-name> "<commit message>" (creates branch, commits, pushes, prints PR link). Run from main.
+    • Commit via aaGitPromote <branch-name> "<commit message>" (creates branch, commits, pushes, prints PR link). Run from main in DEV MAC TERMINAL.
     • I open/merge PRs via GitHub UI after CI passes. I do not click "Delete branch" in GitHub.
     • After merge, clean up via aaGitCleanupBranches (switches to main, deletes local+remote branch, pulls latest).
 
@@ -230,7 +222,7 @@ Repos
     • mitchellnet-infra — scripts (aaGitPromote, aaGitCleanupBranches, etc.), runbook, architecture docs, roadmap
     • InternalWebServer — NGINX config, static HTML, docker-compose for nginx-proxy + nginx-prod
     • vaultwarden — https://vault.mitchellnet.local/ (subdomain vhost, exempt from bare-IP parity by design)
-    • recipes — https://mitchellnet.local/recipes/ (Flask + MariaDB, full UI + Claude import + prep-ahead + cook log + dish_type + admin all live)
+    • recipes — https://mitchellnet.local/recipes/ (Flask + MariaDB, full UI + Claude import + prep-ahead + cook log + dish_type + admin + AI meal planning + help page all live)
     • mitchellnet-rrsp — NOT YET CREATED (Item 20, planned)
 
 Bare-IP / Name Parity Standard (NEW — 20 June 2026)
@@ -244,3 +236,30 @@ Server .env files are source of truth. Vaultwarden is live and fully populated �
 Repo Locations on Mac Studio
     • newProjectStructure repos: ~/Documents/visualStudioCode/newProjectStructure/<repo>
     • InternalWebServer: ~/Documents/visualStudioCode/html/projects/InternalWebServer
+
+
+Current state as of end of 26 June 2026 session:
+
+COMPLETED THIS SESSION:
+    • DB backup cron job — confirmed live and healthy (3 nightly runs, retention working). Gap closed.
+    • recipes PR #32 — AI meal planning (UC-16) full stack. main → 0d9d473.
+    • InternalWebServer PR #169 — NGINX /ai-plan/ + /recipe-links/ blocks, both vhosts. main → 699de06.
+    • recipes PR #33 — Searchable Help page at /recipes/help, "? Help" link in every page header. main → 0bec434.
+    • recipes PR #34 — Meal Plan + Shopping List nav links added to browse page. main → c8fdc55.
+    • recipes PR #35 — Recipes back link on Meal Plan and Shopping List pages. main → 0292f19.
+    • roadmap updated to reflect 26 June session.
+
+KNOWN ISSUES — logged, not yet actioned, not blocking:
+    • AllRecipes.com import returns 403 Forbidden — scraper/bot detection. Fix is its own small PR.
+    • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
+    • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
+    • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
+    • No UPS on server.
+    • AI meal planning — full browser functional test not yet done (Andrew to test end-to-end flow).
+
+RECIPE MIGRATION STATUS:
+    • 44 of 48 URLs imported (20 June). porkStroganoff.pdf imported as compressed JPEG.
+    • 4 URLs permanently discarded: AllRecipes (403), AgingLikeWine (404), Yummly (dead), FoodNetwork.ca (SSL error).
+    • REMAINING: 6 cookbook page references (Nagi cookbook + New Nagi cookbook) — need manual "Add Recipe" entry (PR #10).
+
+NEXT SESSION FOCUS: recipes PR #8 — Recipe linking (UC-17): recipe_links DB table (init.sql + model), recipe_links routes, detail + form template updates. Also consider PR #9 (wishlist un-flag prompt) and PR #10 (6 cookbook manual entries) if time permits. At start of session request recipes/README.md and InternalWebServer/docs/nginx-routing.md per standing instructions.
