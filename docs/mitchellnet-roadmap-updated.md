@@ -1,5 +1,5 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 27 June 2026 (end of session — InternalWebServer re-cloned to standard location, PR #170 site IA fixes shipped; RC-Circuit project added to roadmap)
+Last updated: 28 June 2026 (end of session — InternalWebServer PRs #171–#177 shipped; repo and server cleanup complete; site IA redesign complete)
 
 Completed
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
@@ -32,6 +32,16 @@ Completed
         ◦ InternalWebServer re-cloned to standard location: ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer. ✅
         ◦ InternalWebServer PR #170 — Site IA fixes: corrected include paths in reference.html and tools.html, fixed stale links in projects.html, updated about.html (NGINX, removed PII, version 2.1.0). main → 84706a5.
         ◦ AllRecipes 403 known issue — closed, not actioning (recipe permanently discarded).
+        ◦ RC-Circuit project (Item 21) added to roadmap.
+    • ✅ 28 June 2026 session:
+        ◦ InternalWebServer PR #171 — Content reorganisation: Electrical & Workshop card removed from Workspaces; Pilot hole sizes moved to Wood Shop; new Facilities card added to Infrastructure (Electrical Panel Workshop, Sink Maintenance); new Subscriptions card added to Home (Tesla Subscription).
+        ◦ InternalWebServer PR #172 — Repo cleanup: 63 stale files deleted (backend, database, recipes, archive, nginx snapshots, monitoring-config, proxy configs, local scripts, orphaned docs).
+        ◦ InternalWebServer PR #173 — Deploy workflow fix: stale backend rsync step removed.
+        ◦ InternalWebServer PRs #174/#175 — Repo restructure: html/prod/ → site/, workshop/ → workspaces/; workflow, docker-compose, and nav links updated.
+        ◦ InternalWebServer PRs #176/#177 — Final cleanup: CLEANUP.md, Makefile, deploy-to-prod.sh, duplicate assets, env banners removed; orphaned pages (reference, tools, projects, site header/footer) deleted; Projects removed from nav.
+        ◦ Server cleanup: old html/ directory removed; backend/, database/, all stale .bak and .new orphan files removed from ~/web_server/.
+        ◦ mitchellnet-infra runbook and bootstrap.sh verified — no changes needed for fresh rebuild.
+        ◦ InternalWebServer — Site IA redesign ✅ COMPLETE.
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -70,7 +80,7 @@ Feature/Build Work
     • Item 15 (Recipes app) — ✅ COMPLETE. All PRs shipped, recipe migration 100% done.
     • Item 20 (RRSP/RRIF app) — Analysis complete (BRD, HLA, financial model produced 18 June 2026). Build not started. Prerequisite: HLA review against existing MitchellNET stack before any code is written.
     • Item 21 (RC-Circuit) — New project. See § 9 below.
-    • InternalWebServer — re-clone ✅ COMPLETE (27 June 2026). Site IA fixes ✅ COMPLETE (PR #170). Remaining backlog: site IA redesign (not yet scoped).
+    • InternalWebServer — ✅ COMPLETE (28 June 2026). All PRs #171–#177 shipped. Repo restructured, cleaned, and site IA redesign done.
 
 Phase 3 — Monitoring: Not yet scoped.
 Phase 4 — IoT: Not yet scoped.
@@ -133,8 +143,24 @@ Summary of key rules
     • GitHub merge screen "X checks pending" badge lags behind actual Actions run — check Actions tab directly
     • Code-review-confidence and live-behavior-confidence are different things — always live-test features with actual data
 
+7.8 Lessons Learned — Workflow Discipline
+    • Always use aaGitPromote to create feature branches — never commit directly to a feature branch or push manually, as this bypasses the PR trigger and the deploy workflow will not fire
+    • After any edit that needs fixing, do NOT push manually to the open branch — instead open a new PR from that branch via GitHub UI so the deploy fires on merge
+    • Stay on main branch in all terminals at all times between PRs — aaGitPromote creates the feature branch itself
+    • When a deploy workflow fails, read the full error before actioning — the failing step name and error message identify the exact fix needed
+
     8. InternalWebServer — Site Structure
-Navigation: Home | Engineering | Workspaces | Infrastructure | Projects | About
+Navigation: Home | Engineering | Workspaces | Infrastructure | About
+
+Repo structure (as of 28 June 2026):
+    • site/ — all served HTML, CSS, JS, images, and reference PDFs (replaces html/prod/)
+    • site/workspaces/ — Workspaces hub (replaces workshop/)
+    • site/engineering/ — Engineering hub
+    • site/infrastructure/ — Infrastructure hub
+    • includes/ — shared header and footer fragments
+    • nginx/ — NGINX config (prod.conf, 000-bareip.conf, ssl-params, security-headers)
+    • docs/ — nginx-routing.md and other repo documentation
+    • sslCertificates/ — CA cert and renewal instructions (private keys NOT in repo)
 
 Hosted Apps
     • /fitness/ — Fitness Tracker
@@ -147,7 +173,7 @@ Infrastructure → Hosted Services
     8.5 InternalWebServer — Backlog / Maintenance
     1. Re-clone to standard location ✅ COMPLETE (27 June 2026) — now at ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer
     2. Site IA fixes ✅ COMPLETE (27 June 2026) — PR #170: include path fixes, stale link fixes, about.html updated
-    3. Site IA redesign — audit which pages are linked vs. orphaned, redesign nav/structure. Not yet scoped.
+    3. Site IA redesign ✅ COMPLETE (28 June 2026) — PRs #171–#177: content reorganised, repo restructured (html/prod→site, workshop→workspaces), orphaned pages removed, nav simplified, repo and server cleaned up
 
     9. RC-Circuit — Item 21 (New Project)
 
@@ -213,21 +239,22 @@ FLASK + NGINX: At the start of any session involving Flask services or NGINX rou
     • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
 
 
-Current state as of end of 27 June 2026 session:
+Current state as of end of 28 June 2026 session:
 
 COMPLETED THIS SESSION:
-    • recipes PRs #37–#38 — Recipe linking (UC-17) and wishlist un-flag prompt (UC-08). Both live and verified.
-    • recipes BRD and HLA updated to v1.5.
-    • Recipe migration 100% complete.
-    • InternalWebServer re-cloned to ~/Documents/visualStudioCode/newProjectStructure/InternalWebServer. ✅
-    • InternalWebServer PR #170 — Site IA fixes live and verified. main → 84706a5.
-    • AllRecipes 403 known issue closed — not actioning.
-    • RC-Circuit project (Item 21) added to roadmap.
+    • InternalWebServer PR #171 — Content reorganisation: Facilities card (Infrastructure), Subscriptions card (Home), Pilot hole sizes to Wood Shop, Electrical & Workshop card removed.
+    • InternalWebServer PR #172 — Repo cleanup: 63 stale files deleted.
+    • InternalWebServer PR #173 — Deploy workflow fix: stale backend rsync removed.
+    • InternalWebServer PRs #174/#175 — Repo restructure: html/prod/ → site/, workshop/ → workspaces/.
+    • InternalWebServer PRs #176/#177 — Final cleanup: stale files removed, orphaned pages deleted, Projects removed from nav.
+    • Server cleanup: html/ directory removed, all orphan files removed from ~/web_server/.
+    • mitchellnet-infra runbook and bootstrap.sh verified correct for fresh rebuild — no changes needed.
+    • InternalWebServer site IA redesign ✅ COMPLETE.
+    • Roadmap updated.
 
 ACTIVE PROJECTS / NEXT SESSION OPTIONS:
     • Item 20 — RRSP/RRIF app: HLA review against MitchellNET stack, then build
     • Item 21 — RC-Circuit: review electricityExperiment-AcVsDc docs, scope the rewrite, create new repo
-    • InternalWebServer § 8.5 item 3 — site IA redesign (not yet scoped)
     • Phase 3 — Monitoring (not yet scoped)
     • Phase 4 — IoT (not yet scoped)
 
