@@ -51,6 +51,13 @@ Completed
         ◦ PR #5 — experiment-2-series-rc/src/run_experiment.py: full rewrite of RC_Experiment1.py against BIS instead of raw pyvisa/SCPI. QSPICE simulation half carried over almost unchanged; bench control now goes through BIS.
         ◦ Live test of the component-measurement workflow (--remeasure-components) failed: DMM returned OL/overload for R1 and stray-lead capacitance (~100pF) for C1 — not real readings on either component. Root cause not yet found. See Known Issues (§ 6.5).
         ◦ Roadmap updated (this entry).
+    • ✅ 5 July 2026 session — BIS § 4.5 gaps closed; RC-Experiments Exp 2 bug resolved:
+        ◦ bench-instrument-service PR #21 — Fixed measure()'s default mode ("DCV" → "VOLT:DC") and docstring to match the real MeasurementMode literal; also fixed stale mode="DCV" examples in README.md. Bench-verified via pytest (90 passed). Deployed to production.
+        ◦ bench-instrument-service PR #22 — Added remote oscilloscope trigger configuration: configure_trigger()/trigger_status() in oscilloscope_siglent_sds1202xe.py, new TriggerStatus/TriggerConfigRequest models (nested, matching response-side pattern), router wiring in oscilloscope.py. Bench-verified live against the SDS1202X-E (SCPI read/write round-trip confirmed, and confirmed visually on the scope's front panel). All 90 tests pass. Deployed to production.
+        ◦ bench-instrument-service PR #23 — Documented the new trigger capability in docs/ARCHITECTURE.md (endpoint table) and docs/BIS_BRD.docx (§6 API Endpoint Summary, two rows). BIS_HLA.docx reviewed — no change needed, it's purely architectural and doesn't describe endpoint-level capabilities. Deployed to production.
+        ◦ § 4.5 (BIS feature gaps) is now fully closed. New tech-debt item logged instead — see § 4.6 below.
+        ◦ RC-Experiments Experiment 2 component-measurement bug (§ 6.5) — root cause identified: physical bench connection issue (loose/marginal breadboard contact), not a software bug. bench_client.py's measure() modes, and RCBenchClient's _MODE_RESISTANCE ("RES") / _MODE_CAPACITANCE ("CAP") constants, were all verified correct against the real API. Confirmed resolved via three checks: (1) an independent test resistor (~994kΩ) measured correctly via the DMM front panel and via BIS; (2) the original failing resistor (~10.42kΩ), measured in-circuit (not isolated) via BIS, no longer read OL — though the in-circuit reading was ~5% low due to capacitor loading, as expected; (3) same resistor, properly isolated per the script's own instructions, gave a clean 9911.14 Ω. Fresh, trustworthy calibration data captured: R1 ≈ 9911Ω, C1 ≈ 7.0µF, tau ≈ 0.0694s. Known Issues entry (§ 6.5) resolved and removed; see § 4.6 for two smaller gaps found along the way.
+        ◦ Roadmap updated (this entry).
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -98,12 +105,16 @@ Phase 4 — IoT: Not yet scoped.
 Items A–F fixed in mitchellnet-infra PR #30 (17 June 2026). ✅
 Checklist updated 20 June 2026 (mitchellnet-infra PR #37) to explicitly name both NGINX vhost files. ✅
 
-    4.5 BIS — Feature Gaps Found via RC-Experiments (4 July 2026)
-Found while building RC-Experiments' shared/src/bis_client.py and experiment-2-series-rc/src/run_experiment.py against the real bench_client.py and app/models/multimeter.py. These need fixing in the bench-instrument-service repo itself:
-    • bench_client.py's measure() docstring lists mode strings DCV, ACV, DCI, ACI, PER — none of these are valid. The real MeasurementMode Literal in app/models/multimeter.py only accepts VOLT:DC, VOLT:AC, CURR:DC, CURR:AC, RES, FRES, FREQ, CONT, DIOD, CAP. Anyone following bench_client.py's own docstring as written will get a 422 from the server. Fix: correct the docstring (and any internal examples) to match the real Pydantic model.
-    • No oscilloscope configuration endpoint exists. bench_client.py only exposes capture_waveform() and oscilloscope_status() — there's no way to remotely set timebase, V/div, coupling, or trigger on the SDS1202X-E. Every experiment run currently requires manually configuring the scope on the front panel before each capture. Needs a POST /v1/oscilloscope/configure endpoint (and driver support in oscilloscope_siglent_sds1202xe.py) to make experiments fully bench-automatable.
-    • Once the above are fixed, update docs/ARCHITECTURE.md, BIS_HLA.docx, and BIS_BRD.docx to accurately document the full exposed feature set — they currently don't mention this gap.
+    4.5 BIS — Feature Gaps Found via RC-Experiments (4 July 2026) ✅ COMPLETE (5 July 2026)
+Found while building RC-Experiments' shared/src/bis_client.py and experiment-2-series-rc/src/run_experiment.py against the real bench_client.py and app/models/multimeter.py. All items below fixed in bench-instrument-service PRs #21–#23 (5 July 2026):
+    • ✅ bench_client.py's measure() docstring listed invalid mode strings (DCV, ACV, DCI, ACI, PER). Fixed: default mode and docstring now match the real MeasurementMode Literal (VOLT:DC, VOLT:AC, CURR:DC, CURR:AC, RES, FRES, FREQ, CONT, DIOD, CAP). README.md examples fixed too. (PR #21)
+    • ✅ No oscilloscope configuration endpoint existed for trigger settings — every experiment run required manually setting trigger source/level/slope/mode on the front panel. Fixed: configure_trigger()/trigger_status() added to the driver, new nested TriggerConfigRequest/TriggerStatus models, wired into POST /v1/oscilloscope/configure and GET /v1/oscilloscope/status. Bench-verified live against the SDS1202X-E. (PR #22)
+    • ✅ docs/ARCHITECTURE.md and BIS_BRD.docx updated to document the trigger capability. BIS_HLA.docx reviewed, no change needed (architectural doc, doesn't describe endpoint-level detail). (PR #23)
     • "Not Secure" browser badge on /api/bench/docs (§ 6.5) — still open, unrelated to the above.
+
+    4.6 BIS / RC-Experiments — Tech Debt Logged 5 July 2026
+    • BIS — audit request/response model consistency across all four instrument routers (oscilloscope, multimeter, power supply, signal generator). Oscilloscope trigger config uses a nested TriggerConfigRequest sub-object (added 5 July alongside the trigger feature, matching the response-side nesting pattern); need to check whether multimeter/PSU/sig-gen follow the same nested pattern or are flat, and standardize on one approach service-wide. Not urgent — logged for later, not blocking current work.
+    • RC-Experiments — no requirements.txt in the repo; run_experiment.py needs numpy and matplotlib, which aren't documented anywhere. Also, BIS_REPO_PATH and BIS_API_KEY environment variables are required to run any experiment script (via shared/src/bis_client.py) but aren't documented in the repo README or anywhere else. Discovered 5 July while debugging the Experiment 2 component-measurement issue. Not urgent, but will bite the next fresh checkout/environment.
 
     5. Recipes App — Remaining Work
     • Recipe-level rating system — deferred pending CookLog usage review
@@ -125,8 +136,7 @@ Outstanding prerequisite: HLA review against existing MitchellNET stack (service
     • InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) may be a category page not a single recipe — Andrew to check the saved recipe's detail page.
     • No UPS installed on the server — open follow-up from the 18→19 June power-loss reboot.
     • AI meal planning — full browser functional test not yet done (Andrew to test end-to-end flow).
-    • RC-Experiments component measurement (--remeasure-components) returns garbage: DMM read OL/overload for R1 and ~100pF (stray/open-lead) for C1, instead of real values. Andrew did move the DMM leads to isolate each component on a free breadboard spot per the script's prompts, so it's not simply "leads weren't moved" — root cause (bad hole contact, wrong DMM range, something else) not yet diagnosed. Needs live debugging at the bench next session before any real component values can be trusted. component-values.json currently holds the bad reading (τ ≈ 7.58×10²⁷s, obviously invalid) — must be re-measured, not used as-is.
-    • BIS API key was pasted in plaintext during the 4 July 2026 chat session (both in a terminal paste and in this document). Low urgency but should be rotated in BIS's config once convenient.
+    • BIS API key was pasted in plaintext during the 4 July 2026 chat session (both in a terminal paste and in this document), and again during the 5 July 2026 session. Low urgency but should be rotated in BIS's config once convenient.
 
     7. Lessons Learned — NGINX + Flask Routing
 At the start of any new session involving Flask services or NGINX routing, request these two documents before writing any code:
@@ -219,19 +229,19 @@ Infrastructure → Hosted Services
 
     Experiment 2 — Series RC — status
     • Theory, Fritzing reference design, and run script all built (PRs #3–#5)
-    • Real measured values: R1 = 10.42kΩ, C1 = 8.52µF, τ ≈ 88.8ms — NOT the same as the old repo's assumed 1kΩ/10µF
-    • --remeasure-components workflow tested live and currently broken (DMM returns OL/stray readings, not real ones) — see Known Issues § 6.5. Must be fixed before any --sim-only or --bench run can be trusted.
-    • experiment-2-series-rc/README.md not yet written (waiting until the script has had at least one clean successful run)
+    • --remeasure-components workflow's OL/stray-reading bug (5 July 2026) — resolved, root cause was a physical bench connection issue, not software. See § 4.6 session log for full detail.
+    • Fresh, trustworthy measured values (5 July 2026, properly isolated): R1 ≈ 9911Ω, C1 ≈ 7.0µF, τ ≈ 0.0694s — supersedes the earlier R1 = 10.42kΩ/C1 = 8.52µF figures quoted from the 4 July session, which were pre-bug-discovery and not the values now cached in component-values.json
+    • experiment-2-series-rc/README.md not yet written (waiting until the script has had at least one clean successful --sim-only or --bench run)
 
     Experiment 1 — Bias-T — status
     • Not yet started. Circuit is a genuinely different topology from series RC (inductor + capacitor combining a DC bias and an AC signal, not a time-constant charge/discharge) — needs its own theory doc, its own Fritzing design (new part: an inductor), and its own breadboard build.
 
-    BIS feature gaps found while building this (see § 4.5 for full detail)
-    • bench_client.py's measure() docstring has invalid mode strings vs. the real API
-    • No remote oscilloscope-configuration endpoint — manual front-panel setup required every run
-    • BIS_HLA.docx/BIS_BRD.docx and docs/ARCHITECTURE.md need updating once the above are fixed
+    BIS feature gaps found while building this — ✅ all fixed 5 July 2026 (see § 4.5 for full detail)
+    • ✅ bench_client.py's measure() docstring had invalid mode strings vs. the real API — fixed
+    • ✅ No remote oscilloscope-configuration endpoint for trigger settings — added
+    • ✅ BIS_HLA.docx/BIS_BRD.docx and docs/ARCHITECTURE.md updated
 
-    Status: 🟡 In progress. Experiment 2 built but blocked on the component-measurement bug. Experiment 1 not started. BIS itself needs the feature-gap fixes above before either experiment can be fully bench-automated.
+    Status: 🟢 Experiment 2 built, component-measurement bug resolved, fresh calibration data captured. Not yet run end-to-end via --sim-only or --bench. Experiment 1 not started. BIS feature-gap fixes are complete, so both experiments can now be fully bench-automated once run.
 
     10. Resume Prompt (paste this verbatim to start the next session)
 
