@@ -1,5 +1,5 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 4 July 2026 (end of session — RC-Experiments repo created and substantially built: scaffold, concept docs, Experiment 2 theory/Fritzing/script, BIS client wrapper; component-measurement bug found, not yet resolved)
+Last updated: 5 July 2026, evening session (BIS oscilloscope coupling bug found, root-caused against real hardware, and fixed across two PRs; SCPI wire-format test gap that let it slip through closed with a new driver-level test file; README.md and docs/ARCHITECTURE.md updated to match)
 
 Completed
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
@@ -58,6 +58,15 @@ Completed
         ◦ § 4.5 (BIS feature gaps) is now fully closed. New tech-debt item logged instead — see § 4.6 below.
         ◦ RC-Experiments Experiment 2 component-measurement bug (§ 6.5) — root cause identified: physical bench connection issue (loose/marginal breadboard contact), not a software bug. bench_client.py's measure() modes, and RCBenchClient's _MODE_RESISTANCE ("RES") / _MODE_CAPACITANCE ("CAP") constants, were all verified correct against the real API. Confirmed resolved via three checks: (1) an independent test resistor (~994kΩ) measured correctly via the DMM front panel and via BIS; (2) the original failing resistor (~10.42kΩ), measured in-circuit (not isolated) via BIS, no longer read OL — though the in-circuit reading was ~5% low due to capacitor loading, as expected; (3) same resistor, properly isolated per the script's own instructions, gave a clean 9911.14 Ω. Fresh, trustworthy calibration data captured: R1 ≈ 9911Ω, C1 ≈ 7.0µF, tau ≈ 0.0694s. Known Issues entry (§ 6.5) resolved and removed; see § 4.6 for two smaller gaps found along the way.
         ◦ Roadmap updated (this entry).
+    • ✅ 5 July 2026 evening session — BIS oscilloscope coupling bug found, root-caused against real hardware, and fixed; SCPI wire-format test gap closed:
+        ◦ Audit-verification script (bench_client.configure_oscilloscope with coupling='DC') revealed that channel coupling silently failed to change on the real SDS1202X-E, while scale and timebase changes worked. Root-caused in two layers, each shipped as its own PR:
+        ◦ bench-instrument-service PR #25 — Discovered the nested channel_config/timebase/trigger request-model fix from an earlier, undated session had been built locally (in app/models/oscilloscope.py, app/routers/oscilloscope.py, bench_client.py) but never committed or merged — the running production container had been on the old flat-field request shape the entire time. Committed and shipped that fix, plus a first (still-incorrect) attempt at the coupling fix (bare DC/AC → DC1M/AC1M). Bench-verified via pytest (99 passed) and deployed.
+        ◦ bench-instrument-service PR #26 — The DC1M/AC1M fix from PR #25 still didn't work live. Used lxi discover to find the scope's real LAN IP (192.168.2.45 — differs from the placeholder used in some docs) and talked to it directly via a standalone pyvisa script, bypassing BIS entirely, to test candidate CPL command syntaxes. Found the instrument's actual wire format is D1M/A1M/GND, not DC1M/AC1M/GND as the driver's own (incorrect) docstring assumed — meaning the status-read parser (_parse_coupling) had likely been silently misreporting DC as GND for a long time, independent of the write-side bug. Fixed both the write path (configure_channel) and the read path (_parse_coupling). Bench-verified via pytest (99 passed) and against the real scope (coupling now correctly reads back as DC after a DC write). Deployed and confirmed live.
+        ◦ bench-instrument-service PR #27 — Closed the underlying test gap: all existing oscilloscope tests mock the driver itself, so none of them actually exercise the SCPI strings sent to write() — neither bug above would have been caught by CI. Added tests/test_oscilloscope_driver.py (13 new tests) which mocks only the VISA resource one layer down and asserts on literal SCPI strings (e.g. "C1:CPL D1M"). Updated README.md's Project Structure test list (added test_oscilloscope_driver.py and the previously-undocumented test_bench_client_contracts.py) and docs/ARCHITECTURE.md (fixed a stale test list that still referenced a nonexistent test_instruments.py and was missing five real test files; added a new "Router-level vs. driver-level instrument tests" section documenting the distinction for future contributors). Bench-verified via pytest (112 passed) and deployed.
+        ◦ All three PRs merged and deployed via the standard CI/CD pipeline (GitHub Actions self-hosted runner, "Deploy to Production" workflow, verified green in the Actions tab each time — not just the merge-screen badge, per § 7.7).
+        ◦ Session hygiene issue found and corrected: aaGitCleanupBranches was run with a typo ("yews") after PR #25's merge, aborting the cleanup and leaving the merged branch checked out locally. This caused a second commit (the D1M/A1M fix) to almost land on top of the stale already-merged branch instead of main. Caught before promoting; resolved via git stash → checkout main → pull → delete stale branch (local + remote) → stash pop, with no data loss. See § 7.9 for the resulting process fix.
+        ◦ BIS API key was pasted in plaintext again this session (multiple terminal commands) — same recurring issue flagged 4–5 July. Still not rotated.
+        ◦ Roadmap updated (this entry).
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -115,6 +124,8 @@ Found while building RC-Experiments' shared/src/bis_client.py and experiment-2-s
     4.6 BIS / RC-Experiments — Tech Debt Logged 5 July 2026
     • BIS — audit request/response model consistency across all four instrument routers (oscilloscope, multimeter, power supply, signal generator). Oscilloscope trigger config uses a nested TriggerConfigRequest sub-object (added 5 July alongside the trigger feature, matching the response-side nesting pattern); need to check whether multimeter/PSU/sig-gen follow the same nested pattern or are flat, and standardize on one approach service-wide. Not urgent — logged for later, not blocking current work.
     • RC-Experiments — no requirements.txt in the repo; run_experiment.py needs numpy and matplotlib, which aren't documented anywhere. Also, BIS_REPO_PATH and BIS_API_KEY environment variables are required to run any experiment script (via shared/src/bis_client.py) but aren't documented in the repo README or anywhere else. Discovered 5 July while debugging the Experiment 2 component-measurement issue. Not urgent, but will bite the next fresh checkout/environment.
+    • ✅ RESOLVED (5 July 2026 evening) — BIS oscilloscope test suite could not catch SCPI wire-format bugs, because every router-level oscilloscope test mocked the driver itself rather than the underlying VISA resource. This is exactly how the coupling bug (below) shipped without CI ever flagging it. Closed via bench-instrument-service PR #27 — see the 5 July evening Completed entry above for full detail. The same gap likely still exists for the other three instrument drivers (multimeter, power supply, signal generator) — none of them have an equivalent driver-level wire-format test file yet. Logged as a new item below.
+    • BIS — multimeter, power supply, and signal generator drivers have no driver-level SCPI wire-format tests (the pattern added for the oscilloscope in PR #27). Any of them could have a live bug identical in kind to the oscilloscope coupling bug, undetected by the existing router-level-only test suite. Not urgent, but worth an audit pass — pick one driver, verify its SCPI syntax against the real instrument the same way the oscilloscope's was verified (lxi discover + direct pyvisa script), and add the equivalent test file.
 
     5. Recipes App — Remaining Work
     • Recipe-level rating system — deferred pending CookLog usage review
@@ -176,6 +187,14 @@ Summary of key rules
     • After any edit that needs fixing, do NOT push manually to the open branch — instead open a new PR from that branch via GitHub UI so the deploy fires on merge
     • Stay on main branch in all terminals at all times between PRs — aaGitPromote creates the feature branch itself
     • When a deploy workflow fails, read the full error before actioning — the failing step name and error message identify the exact fix needed
+
+7.9 Lessons Learned — Hardware SCPI Verification & Session Hygiene (5 July 2026)
+    • Never trust a driver's own docstring/comments for real instrument wire-format syntax — verify directly against the physical instrument. The oscilloscope coupling bug shipped twice (DC1M/AC1M, then still wrong) because both attempts were guesses based on the driver's own (incorrect) query-response comments, not the real instrument. The only way this got resolved was talking to the scope directly over pyvisa (bypassing BIS) and testing candidate command strings one at a time.
+    • lxi discover (from lxi-tools, brew install lxi-tools) is the fast way to find an LXI/VXI-11 instrument's LAN IP when it's not documented or has changed — broadcasts on the LAN and returns identity + IP for every compliant instrument. Faster and cleaner than a port scan.
+    • A test suite that only mocks the driver (router-level tests) cannot catch bugs in the actual commands a driver sends to hardware. If a service talks to real instruments/hardware over a wire protocol, at least one test file per driver should mock only the transport layer (e.g. the VISA resource) and assert on literal wire strings — see bench-instrument-service's tests/test_oscilloscope_driver.py for the pattern.
+    • Uncommitted local work-in-progress left at the end of a session is a real risk: a prior session's channel_config/timebase nesting fix was built and apparently working locally but never committed/promoted, so production silently kept running the old broken code for an entire subsequent session before anyone noticed. End every session by either committing/promoting real fixes or explicitly logging them as "not yet committed" in the roadmap — don't let them sit invisibly in a working tree.
+    • Branch cleanup (aaGitCleanupBranches) should run immediately after every merge, before any further verification or new work — not deferred. Deferring it risks a second commit landing on top of an already-merged, not-yet-deleted branch instead of main (nearly happened this session; caught and fixed via git stash + branch resync, no data lost).
+    • When giving Claude Mac-terminal instructions to inspect changes, ask for the exact command to run (e.g. "give me the command"), not just "give me a diff" — keeps every step fully explicit and pasteable without interpretation.
 
     8. InternalWebServer — Site Structure
 Navigation: Home | Engineering | Workspaces | Infrastructure | About
@@ -260,11 +279,13 @@ ONE REPO AT A TIME: I have separate VSCode windows per repo. Always complete all
 COMMAND RULES:
     • Always pipe git diff through cat: git diff | cat
     • Always get a diff before promoting: after any edit, run git diff | cat and paste back for review
+    • Always give me the exact command to run — say "run this command," not "give me a diff" or other indirect phrasing — so every step is fully explicit and pasteable without interpretation
     • Stay on main branch in all terminals at all times — aaGitPromote creates the feature branch itself
     • For file contents, give me raw cat/grep commands to run in the terminal rather than asking the VSCode plugin to "show" files
     • Promote via: aaGitPromote <branch-name> "<commit message>" (run from main in the repo terminal)
-    • Clean up via: aaGitCleanupBranches (after PR is merged in GitHub UI)
+    • Clean up via: aaGitCleanupBranches (after PR is merged in GitHub UI) — run this immediately after every merge, before any further verification or new work, not deferred
     • Never click "Delete branch" in GitHub UI — the cleanup script handles it
+    • Type cleanup confirmations ("yes") carefully — a typo aborts the cleanup and leaves a stale branch checked out, risking a later commit landing on the wrong branch
 
 PR WORKFLOW:
     • I open and merge PRs via GitHub UI after CI passes
@@ -279,36 +300,41 @@ FLASK + NGINX: At the start of any session involving Flask services or NGINX rou
     • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
 
 
-Current state as of end of 4 July 2026 session:
+Current state as of end of 5 July 2026 evening session:
 
-COMPLETED THIS SESSION:
-    • RC-Experiments (Item 21) repo created: https://github.com/theAgingApprentice/RC-Experiments (renamed from the originally-scoped RC-Circuit)
-    • Decided: repo holds many future experiments, one root-level dir each. Experiment 1 = Bias-T, Experiment 2 = Series RC (built first, breadboard already wired).
-    • PR #1/#2 — repo scaffold, docs/concepts/ (glossary, circuit-theory, unit-conversions, electricity-fundamentals), docs/architecture.md
-    • PR #3 — Experiment 2 theory.md, Fritzing reference design, breadboard photo. Real measured values: R1=10.42kΩ, C1=8.52µF, τ≈88.8ms (old repo's assumed 1kΩ/10µF/τ=1s was wrong on both counts)
-    • PR #4 — shared/src/bis_client.py (RCBenchClient wrapper around BIS's bench_client.py)
-    • PR #5 — experiment-2-series-rc/src/run_experiment.py — full BIS-based rewrite of RC_Experiment1.py
-    • Found real bugs in BIS while building the above — see § 4.5
-    • Live-tested --remeasure-components — failed (DMM OL/stray readings) — not yet resolved
-    • Roadmap updated (this entry)
+COMPLETED THIS SESSION (5 July evening):
+    • Diagnosed and fixed a real BIS bug: oscilloscope channel coupling silently failed to apply via configure_oscilloscope(), even though scale/timebase changes worked.
+    • bench-instrument-service PR #25 — Shipped a prior session's never-committed channel_config/timebase/trigger nested-request-model fix (production had been running the old flat-shape code this whole time), plus a first, still-incorrect coupling fix (DC1M/AC1M).
+    • bench-instrument-service PR #26 — Found and fixed the real bug: used lxi discover + a direct pyvisa script against the scope (192.168.2.45) to determine the actual SCPI wire format is D1M/A1M/GND, not DC1M/AC1M/GND. Fixed both the write path and the status-read parser. Confirmed live: coupling now correctly reads back DC after a DC write.
+    • bench-instrument-service PR #27 — Added tests/test_oscilloscope_driver.py (13 tests) asserting literal SCPI strings sent to write(), closing the gap that let both bugs above ship silently. Updated README.md and docs/ARCHITECTURE.md test lists and documented the router-level vs. driver-level test distinction.
+    • All three PRs merged and deployed; deploy workflow verified green in the Actions tab each time.
+    • Corrected a git housekeeping near-miss (aborted branch cleanup left a stale branch checked out) — see § 7.9.
+    • Full detail: see the "5 July 2026 evening session" entry under Completed, and § 4.6 / § 7.9.
 
 ACTIVE PROJECTS / NEXT SESSION OPTIONS:
-    • Item 21 — RC-Experiments, Experiment 2: debug the component-measurement bug at the bench (DMM returning OL for R1, stray capacitance for C1) before anything else on this experiment can proceed. Once fixed: re-run --remeasure-components, then --scenario 2 --sim-only as a smoke test, then a full --bench run. Then write experiment-2-series-rc/README.md.
+    • Item 21 — RC-Experiments, Experiment 2: not yet run end-to-end via --sim-only or --bench (the component-measurement bug that blocked this is resolved — see 5 July daytime session). Run it, then write experiment-2-series-rc/README.md.
     • Item 21 — RC-Experiments, Experiment 1 (Bias-T): not started. Needs its own theory doc, Fritzing design (new inductor part), and breadboard build.
-    • BIS — fix the two feature gaps in § 4.5 (measure() docstring, missing oscilloscope-configure endpoint), then update BIS_HLA.docx/BIS_BRD.docx/ARCHITECTURE.md to match.
-    • Rotate the BIS API key (pasted in plaintext this session).
-    • Item 20 — RRSP/RRIF app: HLA review against MitchellNET stack, then build
-    • Phase 3 — Monitoring (not yet scoped)
-    • Phase 4 — IoT (not yet scoped)
+    • BIS — audit the other three instrument drivers (multimeter, power supply, signal generator) for the same SCPI wire-format test gap just closed for the oscilloscope; add driver-level tests per driver once each is verified against real hardware. See § 4.6.
+    • BIS — audit request/response model consistency across all four instrument routers (nested vs. flat). See § 4.6.
+    • Rotate the BIS API key — pasted in plaintext across multiple sessions now (4 July, 5 July daytime, 5 July evening). This is the most overdue item on the list.
+    • Item 20 — RRSP/RRIF app: HLA review against MitchellNET stack, then build.
+    • Phase 3 — Monitoring (not yet scoped).
+    • Phase 4 — IoT (not yet scoped).
 
 KNOWN ISSUES — logged, not yet actioned:
-    • RC-Experiments component measurement returns garbage (OL for R1, stray capacitance for C1) despite leads being moved per the script's prompts — root cause not yet diagnosed, needs live debugging at the bench. Blocking for Experiment 2.
-    • BIS bench_client.py's measure() docstring lists invalid mode strings (DCV/ACV/DCI/ACI/PER) that don't match the real API model (VOLT:DC etc.) — needs a docstring fix in the BIS repo.
-    • BIS has no remote oscilloscope-configuration endpoint — every experiment run currently needs manual front-panel scope setup.
-    • BIS API key was pasted in plaintext during this session — rotate when convenient.
+    • BIS API key pasted in plaintext across multiple sessions (4–5 July 2026) — rotate. Overdue.
     • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
+    • BIS — multimeter/power-supply/signal-generator drivers lack the driver-level SCPI wire-format tests just added for the oscilloscope; unaudited against real hardware. See § 4.6.
+    • BIS — request/response model nesting inconsistency across the four instrument routers, not yet audited. See § 4.6.
+    • RC-Experiments — no requirements.txt (needs numpy, matplotlib) and no documentation of the required BIS_REPO_PATH / BIS_API_KEY environment variables. See § 4.6.
     • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
     • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
     • No UPS on server.
     • AI meal planning — full browser functional test not yet done (Andrew to test end-to-end flow).
     • "Not Secure" badge on https://192.168.2.10/api/bench/docs — root cause unknown, low priority.
+
+RESOLVED SINCE 4 JULY (no longer open):
+    • RC-Experiments component-measurement bug (OL/stray readings) — resolved 5 July daytime; physical bench connection issue, not software. See § 6.5 history / § 4.6.
+    • BIS bench_client.py's measure() docstring mode-string mismatch — fixed 5 July daytime, PR #21.
+    • BIS missing remote oscilloscope-configuration endpoint (trigger settings) — fixed 5 July daytime, PR #22.
+    • BIS oscilloscope coupling silently failing to apply — fixed 5 July evening, PRs #25–#26.
