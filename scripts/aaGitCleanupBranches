@@ -3,6 +3,9 @@
 
 set -e
 
+echo "Pruning stale remote-tracking refs..."
+git fetch --prune origin
+
 LOCAL_BRANCHES=$(git branch | grep -v '^\* main$' | grep -v '^  main$' | sed 's/^[* ]*//' | grep -v '^$')
 REMOTE_BRANCHES=$(git branch -r | grep -v 'origin/HEAD' | grep -v 'origin/main' | sed 's|.*origin/||' | sed 's/^[[:space:]]*//' | grep -v '^$')
 
@@ -43,7 +46,9 @@ fi
 if [ -n "$REMOTE_BRANCHES" ]; then
     while IFS= read -r b; do
         echo "Deleting remote branch: origin/$b"
-        git push origin --delete "$b"
+        if ! git push origin --delete "$b"; then
+            echo "  Warning: could not delete origin/$b (may already be gone). Continuing..."
+        fi
     done <<< "$REMOTE_BRANCHES"
 fi
 
