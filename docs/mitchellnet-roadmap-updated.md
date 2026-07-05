@@ -1,5 +1,5 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 28 June 2026 (end of session — InternalWebServer PRs #171–#177 shipped; repo and server cleanup complete; site IA redesign complete)
+Last updated: 4 July 2026 (end of session — RC-Experiments repo created and substantially built: scaffold, concept docs, Experiment 2 theory/Fritzing/script, BIS client wrapper; component-measurement bug found, not yet resolved)
 
 Completed
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
@@ -42,6 +42,15 @@ Completed
         ◦ Server cleanup: old html/ directory removed; backend/, database/, all stale .bak and .new orphan files removed from ~/web_server/.
         ◦ mitchellnet-infra runbook and bootstrap.sh verified — no changes needed for fresh rebuild.
         ◦ InternalWebServer — Site IA redesign ✅ COMPLETE.
+    • ✅ 4 July 2026 session — RC-Experiments (Item 21) repo created and substantially built:
+        ◦ Repo renamed RC-Experiments (was RC-Circuit in the original scoping) — live at https://github.com/theAgingApprentice/RC-Experiments
+        ◦ Decision: repo holds many future electronics experiments, one root-level directory each. Experiment 1 = Bias-T circuit (AC/DC separation). Experiment 2 = Series RC (time constant) — built first since the breadboard was already wired.
+        ◦ PR #1/#2 — repo scaffold + docs/concepts/ (glossary, circuit-theory, unit-conversions, electricity-fundamentals) + docs/architecture.md, built from Andrew's existing reference docs (RC_Experiment1_Glossary.docx, circuitTheory.odt, electronics_unit_conversion.pdf, roughDraftElectricityGuide.odt, HighLevelExplanationOfSetup.odt)
+        ◦ PR #3 — experiment-2-series-rc/docs/theory.md, Fritzing reference design (series-rc.fzz), breadboard photo. Real component values measured via DMM: R1 = 10.42kΩ, C1 = 8.52µF — not the 1kΩ/10µF the old RC_Experiment1 docs assumed (those docs also had an arithmetic error, claiming τ=1s from 1kΩ×10µF, which is actually 0.01s)
+        ◦ PR #4 — shared/src/bis_client.py (RCBenchClient), a thin wrapper around BIS's own bench_client.py. Found and worked around a real bug while writing it — see § 4.5 below.
+        ◦ PR #5 — experiment-2-series-rc/src/run_experiment.py: full rewrite of RC_Experiment1.py against BIS instead of raw pyvisa/SCPI. QSPICE simulation half carried over almost unchanged; bench control now goes through BIS.
+        ◦ Live test of the component-measurement workflow (--remeasure-components) failed: DMM returned OL/overload for R1 and stray-lead capacitance (~100pF) for C1 — not real readings on either component. Root cause not yet found. See Known Issues (§ 6.5).
+        ◦ Roadmap updated (this entry).
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -79,7 +88,7 @@ Phase 0.5 — Bare-IP / Name Parity Standard ✅ COMPLETE (20 June 2026)
 Feature/Build Work
     • Item 15 (Recipes app) — ✅ COMPLETE. All PRs shipped, recipe migration 100% done.
     • Item 20 (RRSP/RRIF app) — Analysis complete (BRD, HLA, financial model produced 18 June 2026). Build not started. Prerequisite: HLA review against existing MitchellNET stack before any code is written.
-    • Item 21 (RC-Circuit) — New project. See § 9 below.
+    • Item 21 (RC-Experiments, renamed from RC-Circuit) — In progress. See § 9 below.
     • InternalWebServer — ✅ COMPLETE (28 June 2026). All PRs #171–#177 shipped. Repo restructured, cleaned, and site IA redesign done.
 
 Phase 3 — Monitoring: Not yet scoped.
@@ -88,6 +97,13 @@ Phase 4 — IoT: Not yet scoped.
     4. aaNewService — Known Issues
 Items A–F fixed in mitchellnet-infra PR #30 (17 June 2026). ✅
 Checklist updated 20 June 2026 (mitchellnet-infra PR #37) to explicitly name both NGINX vhost files. ✅
+
+    4.5 BIS — Feature Gaps Found via RC-Experiments (4 July 2026)
+Found while building RC-Experiments' shared/src/bis_client.py and experiment-2-series-rc/src/run_experiment.py against the real bench_client.py and app/models/multimeter.py. These need fixing in the bench-instrument-service repo itself:
+    • bench_client.py's measure() docstring lists mode strings DCV, ACV, DCI, ACI, PER — none of these are valid. The real MeasurementMode Literal in app/models/multimeter.py only accepts VOLT:DC, VOLT:AC, CURR:DC, CURR:AC, RES, FRES, FREQ, CONT, DIOD, CAP. Anyone following bench_client.py's own docstring as written will get a 422 from the server. Fix: correct the docstring (and any internal examples) to match the real Pydantic model.
+    • No oscilloscope configuration endpoint exists. bench_client.py only exposes capture_waveform() and oscilloscope_status() — there's no way to remotely set timebase, V/div, coupling, or trigger on the SDS1202X-E. Every experiment run currently requires manually configuring the scope on the front panel before each capture. Needs a POST /v1/oscilloscope/configure endpoint (and driver support in oscilloscope_siglent_sds1202xe.py) to make experiments fully bench-automatable.
+    • Once the above are fixed, update docs/ARCHITECTURE.md, BIS_HLA.docx, and BIS_BRD.docx to accurately document the full exposed feature set — they currently don't mention this gap.
+    • "Not Secure" browser badge on /api/bench/docs (§ 6.5) — still open, unrelated to the above.
 
     5. Recipes App — Remaining Work
     • Recipe-level rating system — deferred pending CookLog usage review
@@ -109,6 +125,8 @@ Outstanding prerequisite: HLA review against existing MitchellNET stack (service
     • InsanelyGoodRecipes.com import (https://insanelygoodrecipes.com/vietnamese-recipes/) may be a category page not a single recipe — Andrew to check the saved recipe's detail page.
     • No UPS installed on the server — open follow-up from the 18→19 June power-loss reboot.
     • AI meal planning — full browser functional test not yet done (Andrew to test end-to-end flow).
+    • RC-Experiments component measurement (--remeasure-components) returns garbage: DMM read OL/overload for R1 and ~100pF (stray/open-lead) for C1, instead of real values. Andrew did move the DMM leads to isolate each component on a free breadboard spot per the script's prompts, so it's not simply "leads weren't moved" — root cause (bad hole contact, wrong DMM range, something else) not yet diagnosed. Needs live debugging at the bench next session before any real component values can be trusted. component-values.json currently holds the bad reading (τ ≈ 7.58×10²⁷s, obviously invalid) — must be re-measured, not used as-is.
+    • BIS API key was pasted in plaintext during the 4 July 2026 chat session (both in a terminal paste and in this document). Low urgency but should be rotated in BIS's config once convenient.
 
     7. Lessons Learned — NGINX + Flask Routing
 At the start of any new session involving Flask services or NGINX routing, request these two documents before writing any code:
@@ -175,33 +193,45 @@ Infrastructure → Hosted Services
     2. Site IA fixes ✅ COMPLETE (27 June 2026) — PR #170: include path fixes, stale link fixes, about.html updated
     3. Site IA redesign ✅ COMPLETE (28 June 2026) — PRs #171–#177: content reorganised, repo restructured (html/prod→site, workshop→workspaces), orphaned pages removed, nav simplified, repo and server cleaned up
 
-    9. RC-Circuit — Item 21 (New Project)
+    9. RC-Experiments — Item 21 (renamed from RC-Circuit, in progress)
 
     Overview
-    A rewrite of RC_Experiment1.py from the electricityExperiment-AcVsDc repo. The goal is to compare simulated RC circuit behaviour against live bench instrument measurements and provide an AI analysis of any similarities and differences.
+    A repo of electronics-learning experiments, each comparing simulated (QSPICE) circuit behaviour against live bench instrument measurements (via BIS) and explaining the result against theory. Started as a rewrite of RC_Experiment1.py from the electricityExperiment-AcVsDc repo; now designed to hold many future experiments, one root-level directory each.
 
     Key facts
-    • Source repo: https://github.com/theAgingApprentice/electricityExperiment-AcVsDc
-    • File to rewrite: RC_Experiment1.py (existing docs in that repo explain the experiment in detail)
-    • New repo name: RC-Circuit (to be created)
+    • Repo: https://github.com/theAgingApprentice/RC-Experiments (live, private)
     • Dev environment: Mac Studio (macOS) — code developed and edited on Mac
-    • Run environment: Windows OS running under Parallels Desktop on the same Mac Studio
-    • Depends on: bench-instrument-service (BIS) — live instrument readings via the BIS API
+    • Run environment: Windows OS running under Parallels Desktop on the same Mac Studio (QSPICE is Windows-only)
+    • Depends on: bench-instrument-service (BIS) — live instrument readings via the BIS API, wrapped by shared/src/bis_client.py (RCBenchClient) rather than talked to directly
+    • Original source material: electricityExperiment-AcVsDc repo's RC_Experiment1.py and docs (Lab Guide, Setup Guide, Instructions) — used as reference, not ported verbatim, since real measured component values changed the underlying numbers
 
-    What it will do
-    1. Run an RC circuit simulation (replicating what RC_Experiment1.py does today)
-    2. Simultaneously read live measurements from real bench instruments via the BIS API (oscilloscope, multimeter, signal generator, power supply as needed)
-    3. Compare simulated results against live instrument readings
-    4. Call Claude API to provide a plain-English analysis of similarities and differences between the simulation and live measurements
+    Repo structure
+    docs/ (concepts/ + architecture.md) — general glossary, circuit theory, unit conversions, electricity fundamentals, and the sim+BIS+Claude architecture, shared across every experiment
+    shared/src/ — RCBenchClient (BIS wrapper), used by every experiment
+    experiment-1-bias-t/ — fritzing/, src/, docs/, results/ — not yet built
+    experiment-2-series-rc/ — fritzing/ (series-rc.fzz), docs/ (theory.md), src/ (run_experiment.py) — built, not yet successfully run end-to-end
 
-    Prerequisites before build starts
-    • Review electricityExperiment-AcVsDc repo docs to understand the existing experiment scope and simulation approach
-    • Confirm which BIS endpoints are needed (waveform capture, multimeter logging, etc.)
-    • Decide on repo structure (pure Python script vs. Flask app vs. something else)
-    • Decide on output format (terminal, HTML report, saved file)
-    • Confirm Parallels/Windows Python environment and how the BIS API will be reached from Windows (same LAN — 192.168.2.10)
+    What each experiment does
+    1. Run a QSPICE simulation of the circuit
+    2. Read live measurements from real bench instruments via BIS (oscilloscope, multimeter, signal generator)
+    3. Compare simulated results against live instrument readings (residual plot, RMS/max stats)
+    4. (Planned, not yet built) Call Claude API to provide a plain-English analysis of similarities and differences against the theory being taught
 
-    Status: 🔲 Not yet started — prerequisites above must be resolved before coding begins.
+    Experiment 2 — Series RC — status
+    • Theory, Fritzing reference design, and run script all built (PRs #3–#5)
+    • Real measured values: R1 = 10.42kΩ, C1 = 8.52µF, τ ≈ 88.8ms — NOT the same as the old repo's assumed 1kΩ/10µF
+    • --remeasure-components workflow tested live and currently broken (DMM returns OL/stray readings, not real ones) — see Known Issues § 6.5. Must be fixed before any --sim-only or --bench run can be trusted.
+    • experiment-2-series-rc/README.md not yet written (waiting until the script has had at least one clean successful run)
+
+    Experiment 1 — Bias-T — status
+    • Not yet started. Circuit is a genuinely different topology from series RC (inductor + capacitor combining a DC bias and an AC signal, not a time-constant charge/discharge) — needs its own theory doc, its own Fritzing design (new part: an inductor), and its own breadboard build.
+
+    BIS feature gaps found while building this (see § 4.5 for full detail)
+    • bench_client.py's measure() docstring has invalid mode strings vs. the real API
+    • No remote oscilloscope-configuration endpoint — manual front-panel setup required every run
+    • BIS_HLA.docx/BIS_BRD.docx and docs/ARCHITECTURE.md need updating once the above are fixed
+
+    Status: 🟡 In progress. Experiment 2 built but blocked on the component-measurement bug. Experiment 1 not started. BIS itself needs the feature-gap fixes above before either experiment can be fully bench-automated.
 
     10. Resume Prompt (paste this verbatim to start the next session)
 
@@ -239,26 +269,33 @@ FLASK + NGINX: At the start of any session involving Flask services or NGINX rou
     • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
 
 
-Current state as of end of 28 June 2026 session:
+Current state as of end of 4 July 2026 session:
 
 COMPLETED THIS SESSION:
-    • InternalWebServer PR #171 — Content reorganisation: Facilities card (Infrastructure), Subscriptions card (Home), Pilot hole sizes to Wood Shop, Electrical & Workshop card removed.
-    • InternalWebServer PR #172 — Repo cleanup: 63 stale files deleted.
-    • InternalWebServer PR #173 — Deploy workflow fix: stale backend rsync removed.
-    • InternalWebServer PRs #174/#175 — Repo restructure: html/prod/ → site/, workshop/ → workspaces/.
-    • InternalWebServer PRs #176/#177 — Final cleanup: stale files removed, orphaned pages deleted, Projects removed from nav.
-    • Server cleanup: html/ directory removed, all orphan files removed from ~/web_server/.
-    • mitchellnet-infra runbook and bootstrap.sh verified correct for fresh rebuild — no changes needed.
-    • InternalWebServer site IA redesign ✅ COMPLETE.
-    • Roadmap updated.
+    • RC-Experiments (Item 21) repo created: https://github.com/theAgingApprentice/RC-Experiments (renamed from the originally-scoped RC-Circuit)
+    • Decided: repo holds many future experiments, one root-level dir each. Experiment 1 = Bias-T, Experiment 2 = Series RC (built first, breadboard already wired).
+    • PR #1/#2 — repo scaffold, docs/concepts/ (glossary, circuit-theory, unit-conversions, electricity-fundamentals), docs/architecture.md
+    • PR #3 — Experiment 2 theory.md, Fritzing reference design, breadboard photo. Real measured values: R1=10.42kΩ, C1=8.52µF, τ≈88.8ms (old repo's assumed 1kΩ/10µF/τ=1s was wrong on both counts)
+    • PR #4 — shared/src/bis_client.py (RCBenchClient wrapper around BIS's bench_client.py)
+    • PR #5 — experiment-2-series-rc/src/run_experiment.py — full BIS-based rewrite of RC_Experiment1.py
+    • Found real bugs in BIS while building the above — see § 4.5
+    • Live-tested --remeasure-components — failed (DMM OL/stray readings) — not yet resolved
+    • Roadmap updated (this entry)
 
 ACTIVE PROJECTS / NEXT SESSION OPTIONS:
+    • Item 21 — RC-Experiments, Experiment 2: debug the component-measurement bug at the bench (DMM returning OL for R1, stray capacitance for C1) before anything else on this experiment can proceed. Once fixed: re-run --remeasure-components, then --scenario 2 --sim-only as a smoke test, then a full --bench run. Then write experiment-2-series-rc/README.md.
+    • Item 21 — RC-Experiments, Experiment 1 (Bias-T): not started. Needs its own theory doc, Fritzing design (new inductor part), and breadboard build.
+    • BIS — fix the two feature gaps in § 4.5 (measure() docstring, missing oscilloscope-configure endpoint), then update BIS_HLA.docx/BIS_BRD.docx/ARCHITECTURE.md to match.
+    • Rotate the BIS API key (pasted in plaintext this session).
     • Item 20 — RRSP/RRIF app: HLA review against MitchellNET stack, then build
-    • Item 21 — RC-Circuit: review electricityExperiment-AcVsDc docs, scope the rewrite, create new repo
     • Phase 3 — Monitoring (not yet scoped)
     • Phase 4 — IoT (not yet scoped)
 
-KNOWN ISSUES — logged, not yet actioned, not blocking:
+KNOWN ISSUES — logged, not yet actioned:
+    • RC-Experiments component measurement returns garbage (OL for R1, stray capacitance for C1) despite leads being moved per the script's prompts — root cause not yet diagnosed, needs live debugging at the bench. Blocking for Experiment 2.
+    • BIS bench_client.py's measure() docstring lists invalid mode strings (DCV/ACV/DCI/ACI/PER) that don't match the real API model (VOLT:DC etc.) — needs a docstring fix in the BIS repo.
+    • BIS has no remote oscilloscope-configuration endpoint — every experiment run currently needs manual front-panel scope setup.
+    • BIS API key was pasted in plaintext during this session — rotate when convenient.
     • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
     • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
     • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
