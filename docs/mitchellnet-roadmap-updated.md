@@ -67,6 +67,17 @@ Completed
         ◦ Session hygiene issue found and corrected: aaGitCleanupBranches was run with a typo ("yews") after PR #25's merge, aborting the cleanup and leaving the merged branch checked out locally. This caused a second commit (the D1M/A1M fix) to almost land on top of the stale already-merged branch instead of main. Caught before promoting; resolved via git stash → checkout main → pull → delete stale branch (local + remote) → stash pop, with no data loss. See § 7.9 for the resulting process fix.
         ◦ BIS API key was pasted in plaintext again this session (multiple terminal commands) — same recurring issue flagged 4–5 July. Still not rotated.
         ◦ Roadmap updated (this entry).
+    • ⚠️ 5 July 2026 late-evening session — RC-Experiments Experiment 2 first real --bench attempt; found and partially fixed a chain of real bugs, but the run itself never fully completed:
+        ◦ Resumed the RC-Experiments work paused earlier tonight to fix BIS. Re-verified `main` was current in both repos (RC-Experiments and bench-instrument-service), including confirming the Windows/Parallels VM's `Z:\` drive is a Parallels *shared folder* pointing at the same Mac filesystem — not a separate clone — so no separate pull is ever needed there.
+        ◦ New terminal channel established for this session: **WINDOWS PARALLELS TERMINAL** (PowerShell), used specifically for anything requiring QSPICE (Windows-only) or a full sim+bench run. Requires `$env:BIS_REPO_PATH` and `$env:BIS_API_KEY` set per-session (not persisted) — this is the exact undocumented-env-var gap already logged in § 4.6 from earlier today, and it bit us again immediately on the first run attempt.
+        ◦ RC-Experiments PR #6 — `RCBenchClient.configure_scope_for_capture()` added (automates scope timebase/coupling/trigger setup via BIS, removing the old manual front-panel `input()` step now that BIS's coupling bug is fixed); fixed a stale `capture_dual_channel(token, points=2000)` call — BIS's real `capture_waveform()` has never had a `points` parameter, that was always a planning-doc artifact that never matched shipped code. Committed fresh calibration `.cir`/`component-values.json` (kept `.qraw` gitignored per repo policy, by choice).
+        ◦ bench-instrument-service PR #28 — Found and fixed a second, independent real bug while first trying `--bench`: `capture_waveform()`'s `SARA?` (sample rate) query was channel-prefixed (`C1:SARA?`), but sample rate is a *global* scope property — the real instrument hangs indefinitely on the invalid prefixed form. Confirmed directly against the scope (bypassing BIS) before fixing. Added a driver-level wire-format regression test for it, same pattern as the coupling fix.
+        ◦ bench-instrument-service PR #29 — `bench_client.py`'s `capture_waveform()` docstring was stale/wrong (claimed flat `time_s`/`voltage_v`/etc. keys); fixed to document the real envelope shape (`{"timestamp", "channel_1": <WaveformData> | None, "channel_2": <WaveformData> | None}`).
+        ◦ RC-Experiments (uncommitted, part of next fix) — updated `run_bench()`'s return statement twice to match the real, now-documented envelope shape (`capture["probe_a"]["channel_1"]["time_array"]`, not the flat/wrong shapes tried first).
+        ◦ bench-instrument-service PR #30 — Found a third bug: reading the waveform buffer while the scope is actively acquiring (AUTO free-run) can return empty/truncated data for whichever channel's buffer is mid-swap. Added a stop-acquisition-before-read / restore-prior-mode fix to `capture_waveform()`, confirmed via a standalone pyvisa script that explicitly stopping first gives clean, full-length data on both channels. Shipped as the best candidate fix, but flagged at the time as *unconfirmed* — the isolated repro didn't cleanly reproduce the failure before shipping.
+        ◦ **Real, deeper bug found and left unresolved:** after PR #30 deployed, the actual experiment run still failed the same way. Server logs revealed the true root cause: `capture_waveform()`'s `self._resource.read_raw()` call does not reliably read the *entire* multi-megabyte binary waveform block (scope memory depth was 7,000,000 points → ~7MB response) in one call — this is a classic VISA/socket chunk-size limitation, not a wrong SCPI command. Confirmed via a corrupted log line: channel 2's very first query (`TRMD?`) came back as `'C1:WF DAT2,#9000000000\nTRMD AUTO'` — i.e. leftover unread bytes from channel 1's own binary transfer were still sitting in the socket buffer and bled into the next command. This is timing/environment-dependent (didn't reproduce in isolated manual pyvisa tests run outside the Docker container), which is why it slipped past PR #30's own verification. **Not fixed — next session needs to either loop `read_raw()` until the IEEE block's declared byte count is satisfied, or set a large enough `chunk_size` on the VISA resource.**
+        ◦ Session hygiene: cleanup ran correctly after every merge this time (§ 7.9's lesson from earlier applied consistently) — no repeat of the branch mix-up.
+        ◦ Roadmap updated (this entry).
 
     1. Passwords / Credentials
 Server .env files are source of truth. All credentials also stored in Vaultwarden at https://vault.mitchellnet.local/
@@ -126,6 +137,8 @@ Found while building RC-Experiments' shared/src/bis_client.py and experiment-2-s
     • RC-Experiments — no requirements.txt in the repo; run_experiment.py needs numpy and matplotlib, which aren't documented anywhere. Also, BIS_REPO_PATH and BIS_API_KEY environment variables are required to run any experiment script (via shared/src/bis_client.py) but aren't documented in the repo README or anywhere else. Discovered 5 July while debugging the Experiment 2 component-measurement issue. Not urgent, but will bite the next fresh checkout/environment.
     • ✅ RESOLVED (5 July 2026 evening) — BIS oscilloscope test suite could not catch SCPI wire-format bugs, because every router-level oscilloscope test mocked the driver itself rather than the underlying VISA resource. This is exactly how the coupling bug (below) shipped without CI ever flagging it. Closed via bench-instrument-service PR #27 — see the 5 July evening Completed entry above for full detail. The same gap likely still exists for the other three instrument drivers (multimeter, power supply, signal generator) — none of them have an equivalent driver-level wire-format test file yet. Logged as a new item below.
     • BIS — multimeter, power supply, and signal generator drivers have no driver-level SCPI wire-format tests (the pattern added for the oscilloscope in PR #27). Any of them could have a live bug identical in kind to the oscilloscope coupling bug, undetected by the existing router-level-only test suite. Not urgent, but worth an audit pass — pick one driver, verify its SCPI syntax against the real instrument the same way the oscilloscope's was verified (lxi discover + direct pyvisa script), and add the equivalent test file.
+    • ⚠️ ACTIVE BUG, next session priority — BIS's `capture_waveform()` (`app/drivers/oscilloscope_siglent_sds1202xe.py`) does not reliably read the full binary waveform block via a single `self._resource.read_raw()` call when the scope's memory depth is large (confirmed failing at 7,000,000 points / ~7MB). Leftover unread bytes remain in the socket buffer and corrupt the *next* SCPI command sent over that connection — this is why RC-Experiments' dual-channel `--bench` capture kept failing on channel 2 specifically (channel 1's leftover bytes corrupted channel 2's first query). Timing/environment-dependent: does not reproduce in isolated manual pyvisa scripts run outside the Docker container, only in the real deployed service. PR #30 (stop-before-read) was a good-faith candidate fix but did not resolve it — the real fix likely needs to either loop `read_raw()` until the IEEE-488.2 block's declared byte count is satisfied, or set a much larger `chunk_size` on the VISA resource. See the 5 July late-evening Completed entry for full repro details and log evidence.
+    • RC-Experiments — the Windows/Parallels VM requires `$env:BIS_REPO_PATH` and `$env:BIS_API_KEY` to be set every fresh PowerShell session (not persisted) before `run_experiment.py --bench` will import `bis_client.py`/`bench_client.py`, or when calling `bench_client`/`bis_client` directly via `python -c` (also needs `$env:PYTHONPATH` pointed at `shared/src` for the latter). This is the same undocumented-env-var gap logged earlier today, now confirmed to bite on the Windows side too, not just fresh Mac checkouts.
 
     5. Recipes App — Remaining Work
     • Recipe-level rating system — deferred pending CookLog usage review
@@ -300,33 +313,36 @@ FLASK + NGINX: At the start of any session involving Flask services or NGINX rou
     • InternalWebServer/docs/nginx-routing.md — Flask Service Routing Patterns section (includes the Bare-IP Parity Standard — every location block must exist in both nginx/conf.d/prod.conf and nginx/conf.d/000-bareip.conf, except subdomain-based services like Vaultwarden which are exempt)
 
 
-Current state as of end of 5 July 2026 evening session:
+Current state as of end of 5 July 2026 late-evening session:
 
-COMPLETED THIS SESSION (5 July evening):
-    • Diagnosed and fixed a real BIS bug: oscilloscope channel coupling silently failed to apply via configure_oscilloscope(), even though scale/timebase changes worked.
-    • bench-instrument-service PR #25 — Shipped a prior session's never-committed channel_config/timebase/trigger nested-request-model fix (production had been running the old flat-shape code this whole time), plus a first, still-incorrect coupling fix (DC1M/AC1M).
-    • bench-instrument-service PR #26 — Found and fixed the real bug: used lxi discover + a direct pyvisa script against the scope (192.168.2.45) to determine the actual SCPI wire format is D1M/A1M/GND, not DC1M/AC1M/GND. Fixed both the write path and the status-read parser. Confirmed live: coupling now correctly reads back DC after a DC write.
-    • bench-instrument-service PR #27 — Added tests/test_oscilloscope_driver.py (13 tests) asserting literal SCPI strings sent to write(), closing the gap that let both bugs above ship silently. Updated README.md and docs/ARCHITECTURE.md test lists and documented the router-level vs. driver-level test distinction.
-    • All three PRs merged and deployed; deploy workflow verified green in the Actions tab each time.
-    • Corrected a git housekeeping near-miss (aborted branch cleanup left a stale branch checked out) — see § 7.9.
-    • Full detail: see the "5 July 2026 evening session" entry under Completed, and § 4.6 / § 7.9.
+COMPLETED THIS SESSION (5 July late-evening — continuation of the earlier BIS oscilloscope-bug session):
+    • Resumed RC-Experiments Experiment 2 --bench work, paused earlier tonight to fix BIS.
+    • RC-Experiments PR #6 — automated scope config via new `configure_scope_for_capture()`, fixed a stale `points=` arg that never matched real BIS, committed fresh calibration data.
+    • bench-instrument-service PR #28 — fixed a second real bug: `capture_waveform()`'s `SARA?` query was invalidly channel-prefixed, hanging the real scope indefinitely. Added a wire-format regression test.
+    • bench-instrument-service PR #29 — fixed `bench_client.py`'s stale/wrong `capture_waveform()` docstring to document the real response envelope shape.
+    • bench-instrument-service PR #30 — added a stop-acquisition-before-read fix to `capture_waveform()` as a candidate fix for empty channel-2 data; shipped but did NOT resolve the real issue.
+    • Root-caused (but did not fix) a fourth, deeper bug: `capture_waveform()`'s `read_raw()` doesn't reliably read a full multi-megabyte binary block in one call in the deployed Docker service — leftover bytes corrupt the next SCPI command. See § 4.6 for full detail and next-session guidance.
+    • RC-Experiments' Experiment 2 `--bench` run has still never completed successfully end-to-end.
+    • Roadmap updated (this entry).
 
 ACTIVE PROJECTS / NEXT SESSION OPTIONS:
-    • Item 21 — RC-Experiments, Experiment 2: not yet run end-to-end via --sim-only or --bench (the component-measurement bug that blocked this is resolved — see 5 July daytime session). Run it, then write experiment-2-series-rc/README.md.
+    • ⚠️ TOP PRIORITY — fix BIS's `capture_waveform()` binary read chunking bug (§ 4.6). Likely fix: loop `read_raw()` until the declared IEEE block byte count is satisfied, or set a much larger `chunk_size` on the VISA resource. Once fixed, re-run RC-Experiments Experiment 2 `--scenario 2 --bench` end to end — this will be the fifth attempt.
+    • Item 21 — RC-Experiments, Experiment 2: still blocked on the above. Once a `--bench` run succeeds, write `experiment-2-series-rc/README.md`.
     • Item 21 — RC-Experiments, Experiment 1 (Bias-T): not started. Needs its own theory doc, Fritzing design (new inductor part), and breadboard build.
-    • BIS — audit the other three instrument drivers (multimeter, power supply, signal generator) for the same SCPI wire-format test gap just closed for the oscilloscope; add driver-level tests per driver once each is verified against real hardware. See § 4.6.
+    • BIS — audit the other three instrument drivers (multimeter, power supply, signal generator) for the same SCPI wire-format test gap closed for the oscilloscope, AND for the same binary-read chunking risk if any of them transfer large payloads. See § 4.6.
     • BIS — audit request/response model consistency across all four instrument routers (nested vs. flat). See § 4.6.
-    • Rotate the BIS API key — pasted in plaintext across multiple sessions now (4 July, 5 July daytime, 5 July evening). This is the most overdue item on the list.
+    • Rotate the BIS API key — pasted in plaintext across multiple sessions now (4 July, 5 July daytime, 5 July evening, 5 July late-evening). This is the most overdue item on the list.
     • Item 20 — RRSP/RRIF app: HLA review against MitchellNET stack, then build.
     • Phase 3 — Monitoring (not yet scoped).
     • Phase 4 — IoT (not yet scoped).
 
 KNOWN ISSUES — logged, not yet actioned:
+    • ⚠️ BIS `capture_waveform()` binary read chunking bug — blocks RC-Experiments bench captures with large memory-depth acquisitions. See § 4.6. Top priority next session.
     • BIS API key pasted in plaintext across multiple sessions (4–5 July 2026) — rotate. Overdue.
     • GitHub Actions deprecation annotation (actions/setup-python@v5) — not a failure, flagged for maintenance.
-    • BIS — multimeter/power-supply/signal-generator drivers lack the driver-level SCPI wire-format tests just added for the oscilloscope; unaudited against real hardware. See § 4.6.
+    • BIS — multimeter/power-supply/signal-generator drivers lack the driver-level SCPI wire-format tests added for the oscilloscope; unaudited against real hardware. See § 4.6.
     • BIS — request/response model nesting inconsistency across the four instrument routers, not yet audited. See § 4.6.
-    • RC-Experiments — no requirements.txt (needs numpy, matplotlib) and no documentation of the required BIS_REPO_PATH / BIS_API_KEY environment variables. See § 4.6.
+    • RC-Experiments — no requirements.txt (needs numpy, matplotlib) and no documentation of the required BIS_REPO_PATH / BIS_API_KEY / PYTHONPATH environment variables, on either Mac or the Windows/Parallels VM. See § 4.6.
     • Recipe file upload 413 — NGINX client_max_body_size. Workaround: compress to JPEG.
     • InsanelyGoodRecipes.com import — Andrew to verify it saved a real recipe not a listing page.
     • No UPS on server.
@@ -338,3 +354,7 @@ RESOLVED SINCE 4 JULY (no longer open):
     • BIS bench_client.py's measure() docstring mode-string mismatch — fixed 5 July daytime, PR #21.
     • BIS missing remote oscilloscope-configuration endpoint (trigger settings) — fixed 5 July daytime, PR #22.
     • BIS oscilloscope coupling silently failing to apply — fixed 5 July evening, PRs #25–#26.
+    • BIS oscilloscope SCPI wire-format test gap — closed 5 July evening, PR #27.
+    • RC-Experiments stale `points=` argument and manual scope-config step — fixed 5 July late-evening, PR #6.
+    • BIS `capture_waveform()` SARA? channel-prefix hang — fixed 5 July late-evening, PR #28.
+    • BIS `bench_client.py` capture_waveform() docstring drift — fixed 5 July late-evening, PR #29.
