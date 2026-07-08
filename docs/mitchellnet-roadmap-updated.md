@@ -1,9 +1,10 @@
 MitchellNET Roadmap — Full Picture
-Last updated: 7 July 2026, late-night session. The § 4.7 dual-channel bench-capture corruption bug (open since 6 July) is now RESOLVED — root cause found and fixed, confirmed via a new live-hardware pytest tier, not just manual scripts. A new, separate, unrelated bug was found immediately afterward (simulation/measurement time-domain misalignment in RC-Experiments' comparison step) and is NOT yet fixed. See § 4.9 for the complete 7 July session log: root cause, all fixes shipped and deployed, the new bug found, two proposed fixes for it (awaiting a go-ahead on scope), and the exact next-session starting point. Read § 4.9 before doing anything else next session.
+Last updated: 8 July 2026 session. § 4.9 (RC-Experiments time-domain comparison bug) is now RESOLVED and hardware-verified -- Fix #1 and Fix #2 both implemented, test-first, real --bench run confirmed honest RMS/max residual numbers (0.14V RMS / 0.66V max, down from the buggy 2.22V/4.96V). Combined with § 4.7's resolution on 7 July, Experiment 2's --bench workflow is fully working end-to-end for the first time. Andrew now wants to revisit Experiment 2's workflow with three new goals -- DMM R1/C1 measurement timing, a side-by-side real/virtual oscilloscope GUI, and AI-generated analysis of sim-vs-measured differences -- to turn it into a stronger teaching tool for RC circuit theory. See the "Current state as of end of 8 July 2026 session" block at the end of this document for full detail and the exact next-session starting point.
 
-⚠️ READ THIS FIRST NEXT SESSION: Start with § 4.9's "NEXT SESSION — START HERE" subsection. Fix #1 (clip comparison to the real overlapping time window) and Fix #2 (align simulation and measurement time origins on a common reference edge) are both scoped and ready to implement — just need the go-ahead on whether to do #1 only or both #1 and #2. § 4.7 and § 4.8 below are now historical record of the (resolved) corruption bug investigation — still worth reading for the lessons in § 4.8, but the bug itself is closed.
+⚠️ READ THIS FIRST NEXT SESSION: Start with the "Current state as of end of 8 July 2026 session" block at the end of this document. First action item (per § 1, now EIGHT+ sessions overdue): rotate the BIS API key. Then: planning discussion for the Experiment 2 workflow revisit -- scope it before writing any code. § 4.7 / § 4.8 / § 4.9 below are now historical record of the (resolved) corruption and time-domain bugs -- still worth reading for the diagnostic methodology and lessons, but both bugs are closed.
 
 Completed
+    • ✅ 8 July 2026 session -- RC-Experiments § 4.9 time-domain comparison bug fully resolved and hardware-verified; leftover debug logging removed; experiment README written; numpy/matplotlib dependency documented. RC-Experiments PRs #11-#14 shipped and merged. Hardware-verified via a real --scenario 2 --bench run: RMS residual 0.1372V, max residual 0.6551V (down from the buggy 2.22V/4.96V logged in § 4.9) -- Experiment 2's --bench workflow is now fully working end-to-end for the first time. Andrew has also opened a new workflow-revisit discussion for Experiment 2 (DMM R1/C1 measurement timing, side-by-side real/virtual oscilloscope GUI, AI-generated analysis of sim-vs-measured differences) -- not yet scoped. Full detail in the "Current state as of end of 8 July 2026 session" block at the end of this document.
     • ✅ 7 July 2026 session — § 4.7 dual-channel bench-capture corruption bug fully resolved. Real root cause found (per-channel TRMD acquisition restore during sequential channel captures — not the binary-chunking theory from 6 July, which was a real, correct, but unrelated fix). Three BIS PRs shipped and deployed (chunk_size/timeout tuning + query retry, acquisition-settle delay after timebase reconfiguration, and the actual per-channel-restore fix), plus two RC-Experiments PRs (client-side settle delay, capture-validation layer + mocked and live-hardware test tiers). A new live-hardware pytest tier now exists in both repos so future regressions of this class are caught by `pytest` itself, not just manual scripts. Full detail, all lessons learned, and the new (separate, unrelated, NOT yet fixed) time-domain-alignment bug found immediately after — see § 4.9.
     • ✅ mitchellnet-infra — scripts, runbook, architecture docs
     • ✅ All repos on PR-based workflow with branch protection
@@ -284,7 +285,7 @@ Outstanding prerequisite: HLA review against existing MitchellNET stack (service
     • BIS API key pasted in plaintext repeatedly (4 July, 5 July ×3, 6 July) — SIX+ sessions now. Rotate ASAP — see § 1.
     • ✅ RESOLVED 7 July 2026 — RC-Experiments dual-channel bench-capture corruption bug — see § 4.9 for full detail and root cause.
     • DEPRIORITIZED 7 July 2026 — DMM cross-check voltage readings during bench captures were erratic across every attempt; Andrew has explicitly stated this reading is not useful to the experiment's actual goal and is not a debugging priority going forward. Still present in run_bench() but no longer investigated. See § 4.9 backlog.
-    • ⚠️ NEW 7 July 2026 — RC-Experiments comparison/plotting time-domain misalignment bug — see § 4.9 for full detail, root cause, and two proposed fixes awaiting a scope decision. This is the new top technical priority.
+    • RESOLVED 8 July 2026 -- RC-Experiments comparison/plotting time-domain misalignment bug -- see § 4.9 for the original diagnosis and the "Current state as of end of 8 July 2026 session" block at the end of this document for the fix and hardware verification.
 
     7. Lessons Learned — NGINX + Flask Routing
 At the start of any new session involving Flask services or NGINX routing, request these two documents before writing any code:
@@ -400,12 +401,12 @@ Infrastructure → Hosted Services
     • `tests/test_bis_client.py` + `tests/conftest.py` added tonight (PR #8) — 4 tests covering `configure_square_wave()`'s amplitude/offset math and `capture_dual_channel()`'s request composition. All passing. Does NOT and cannot test the actual bench-capture bug, since that only manifests against real, live hardware under conditions not yet reproduced in isolation.
     • README.md written tonight (was previously just the title) — overview, environment setup (BIS_REPO_PATH), and test-running instructions.
     • **`--bench` run has still never completed successfully end-to-end — six-plus attempts, all failing identically at the channel-2 capture step. See § 4.7 for the full diagnostic trail and next-session plan.**
-    • `experiment-2-series-rc/README.md` (the experiment-specific one, distinct from the repo-root README.md above) still not written — waiting on a first clean successful run.
+    • `experiment-2-series-rc/README.md` (the experiment-specific one, distinct from the repo-root README.md above) -- written 8 July 2026 (RC-Experiments PR #13).
 
     Experiment 1 — Bias-T — status
     • Not yet started.
 
-    Status: 🔴 Experiment 2 built, calibration data good, but blocked on an unresolved live bench-capture corruption bug affecting channel 2 specifically. Two real, well-tested, correctly-deployed fixes shipped tonight; neither resolved it. Root cause still unknown. See § 4.7 for full detail and the exact next-session plan. Experiment 1 not started.
+    Status: 🟢 Experiment 2 fully working end-to-end as of 8 July 2026 -- § 4.7 (bench-capture corruption) and § 4.9 (time-domain comparison alignment) both resolved and hardware-verified. Andrew has opened a new workflow-revisit discussion (DMM R1/C1 measurement timing, side-by-side real/virtual oscilloscope GUI, AI-generated difference analysis) -- see the "Current state as of end of 8 July 2026 session" block at the end of this document. Experiment 1 not started.
 
     10. Resume Prompt (paste this verbatim to start the next session)
 
@@ -552,3 +553,70 @@ RESOLVED SINCE 6 JULY (no longer open):
 
 STILL OPEN / NOT RESOLVED (do not mark these resolved without live re-verification):
     • ⚠️ NEW 7 July — RC-Experiments comparison/plotting time-domain misalignment bug. Two fixes proposed (§ 4.9), neither implemented yet. Top technical priority for next session, right after the API key rotation.
+
+
+---
+
+Current state as of end of 8 July 2026 session (supersedes the 7 July summary above for § 4.9 specifically -- the 7 July snapshot is left unedited above as accurate historical record of that point in time):
+
+COMPLETED THIS SESSION (8 July):
+    * RC-Experiments PR #11 -- Fix #1 (clip residual/comparison to the real sim/bench overlap window) and Fix #2 (align sim/bench time origins via a shared first-rising-edge reference) both implemented in compare_and_plot(), via three new pure functions: find_first_rising_edge(), align_bench_time_to_sim(), compute_overlap_residual(). compare_and_plot() now returns a stats dict (rms_residual, max_residual, time_shift_s, overlap_start_s, overlap_end_s) instead of nothing. Test-first: tests/test_compare_and_plot.py (7 new tests) written and confirmed failing before implementation, confirmed passing after. Full suite 20 passed / 3 skipped (hardware tests gated as usual). Merged, branch cleaned up.
+    * RC-Experiments PR #12 -- Removed the leftover TEMP DIAGNOSTIC print block in run_bench() (dead debug logging from the 7 July Sec 4.9 session, marked "remove before merging real fix" in its own comment but never actually removed after the real fix shipped).
+    * Hardware-verified via a real --scenario 2 --bench run on the Windows/Parallels terminal: time shift applied -2.999961s (scope trigger was ~3 divisions/~3s offset from sim's t=0, matches the 0.25s/div timebase), overlap window 0.0000s-6.0000s (full simulated duration now covered after alignment, versus cutting off at ~3.5s before the fix), RMS residual 0.1372V, max residual 0.6551V -- down from the buggy 2.22V RMS / 4.96V max recorded in Sec 4.9. DMM cross-check still erratic (0.437V vs ~2.5V expected) -- unchanged, still deprioritized per Andrew's standing instruction, not investigated.
+    * RC-Experiments PR #13 -- Wrote experiment-2-series-rc/README.md (was a 1-line stub since the file was created) -- overview, circuit, cached component values, scenarios, running instructions, environment setup, output files, comparison methodology (documents Fix #1/#2), DMM cross-check caveat, test instructions, status.
+    * RC-Experiments PR #14 -- Added requirements.txt (numpy, matplotlib -- undocumented since run_experiment.py was first written, flagged as tech debt in Sec 4.6) and documented it in both README.md (repo-root) and experiment-2-series-rc/README.md. Confirmed via a fresh check that bench-instrument-service's own requirements.txt has no numpy/matplotlib dependency -- this was purely an RC-Experiments gap, not a BIS one.
+    * Sec 4.9's time-domain comparison bug is now CLOSED. Sec 4.7 (bench-capture corruption, resolved 7 July) and Sec 4.9 (time-domain alignment, resolved 8 July) together mean Experiment 2's --bench workflow is fully working end-to-end for the first time.
+    * BIS API key rotation -- explicitly deferred again tonight at Andrew's request (now EIGHT+ sessions overdue: 4 July, 5 July x3, 6 July, 7 July, 8 July). Andrew pasted the live key in chat again this session to unblock the Windows/Parallels env var setup. Still the standing first-action-item for next session per Sec 1.
+
+EXPERIMENT 2 -- WHAT IT DOES AND HOW IT RUNS (reference summary, written this session ahead of the workflow-revisit planning discussion below):
+    Purpose: a teaching/validation tool. Drives a real R1-C1 series circuit with a square wave and compares the physical circuit's charge/discharge curve against the theoretical RC step response predicted by QSPICE simulation, to build intuition for RC theory. First of a planned series of experiments in this repo (Experiment 1, Bias-T, not started).
+    Steps on a --scenario N --bench run:
+        1. Component values: load_component_values() reads cached R1/C1 from results/component-values.json (measured once via DMM, not every run). --remeasure-components is a separate standalone invocation that overwrites the cache.
+        2. Scenario setup: build_scenarios() derives tau, half-period, sim duration for the requested scenario. Scenario 2 (1Hz, ~7 tau half-period) is the "clean textbook curve" case.
+        3. Simulation: build_netlist() writes a QSPICE netlist (PULSE source + R1 + C1 + .tran), run_simulation() shells out to QSPICE (Windows-only), parse_qraw() parses the .qraw output into sim_t/sim_v_in/sim_v_mid. Same regardless of --bench.
+        4. Bench capture (--bench only): run_bench() opens a BIS session, configures the SDG to output the same square wave, configures the scope (timebase/V-div/trigger derived from frequency), captures both channels in one BIS request, validates the capture shape, takes a DMM cross-check reading (deprioritized, unreliable). Returns measured time/voltage arrays for both probes.
+        5. Comparison: compare_and_plot() overlays sim vs. measured, aligns bench time onto sim's time axis via a shared rising-edge reference (Fix #2), restricts the residual calc to the real overlap window (Fix #1), prints/returns RMS/max residual, saves a comparison PNG.
+        6. Output: .cir, .qraw, _comparison.png, component-values.json in results/.
+    Known friction points noted this session (not yet acted on): the workflow straddles two machines (Mac for editing/git, Windows/Parallels for anything touching QSPICE or --bench, since QSPICE is Windows-only); BIS_REPO_PATH/BIS_API_KEY don't persist across PowerShell sessions (Sec 4.6, still open).
+
+NEW -- WORKFLOW REVISIT GOALS FOR EXPERIMENT 2 (Andrew's direction, 8 July 2026, NOT YET SCOPED OR BUILT):
+    Andrew wants to revisit experiment-2-series-rc's workflow with three specific goals in mind, intended to turn it into "a very powerful teaching tool around the topic of RC circuits":
+    1. Revisit how/when the DMM measures R1 and C1. Currently a one-time, manually-triggered, cached measurement (--remeasure-components, results/component-values.json) -- not part of the normal --bench run flow at all. Andrew wants to reconsider the timing/integration of this measurement (exact scope of the change not yet discussed).
+    2. A GUI that presents the real oscilloscope display side-by-side with a "virtual oscilloscope" showing the simulated waveform -- i.e. a live visual comparison, not just a static post-run PNG.
+    3. An AI-generated analysis (likely via the Claude API integration already used elsewhere in this project, e.g. recipes) of the differences between the real and simulated traces -- explaining why the differences exist and what they mean, in the context of RC circuit theory.
+    None of this is scoped yet -- next session should start with a planning discussion (architecture, scope, which pieces are MVP vs. later) before any code is written, per the project's standing HLA-review-before-code pattern (see Item 20/RRSP for precedent).
+
+ACTIVE PROJECTS / NEXT SESSION OPTIONS, IN ORDER:
+    1. FIRST -- rotate the BIS API key. EIGHT+ sessions overdue now. Cheap, safe, unrelated to anything else. Do it before the planning discussion below.
+    2. TOP PRIORITY -- planning discussion for the Experiment 2 workflow revisit (three goals above): DMM R1/C1 measurement timing, side-by-side real/virtual oscilloscope GUI, AI-generated difference analysis. Scope this before writing any code.
+    3. Item 21 -- RC-Experiments, Experiment 1 (Bias-T): not started.
+    4. BIS -- audit the other three instrument drivers (multimeter, power supply, signal generator) for the same driver-level SCPI wire-format test gap and live-hardware test tier that oscilloscope now has. See Sec 4.6.
+    5. BIS -- audit request/response model consistency across all four instrument routers, per Sec 4.6.
+    6. RC-Experiments -- BIS_REPO_PATH/BIS_API_KEY still don't persist across Windows/Parallels PowerShell sessions (Sec 4.6, unchanged).
+    7. Item 20 -- RRSP/RRIF app: HLA review against MitchellNET stack, then build.
+    8. Phase 3 -- Monitoring (not yet scoped). Phase 4 -- IoT (not yet scoped).
+
+KNOWN ISSUES -- logged, not yet actioned:
+    * BIS API key pasted in plaintext across EIGHT+ sessions (4-8 July 2026) -- rotate. Extremely overdue.
+    * RC-Experiments Experiment 2 workflow revisit -- not yet scoped, see NEW GOALS above. Top priority after the key rotation.
+    * BIS -- multimeter/power-supply/signal-generator drivers lack driver-level SCPI wire-format tests and the live-hardware test tier oscilloscope now has; unaudited. See Sec 4.6.
+    * BIS -- request/response model nesting inconsistency across the four instrument routers, not yet audited. See Sec 4.6.
+    * RC-Experiments -- BIS_REPO_PATH/BIS_API_KEY env vars still not persisted across Windows/Parallels sessions. See Sec 4.6.
+    * capture_validation.py's voltage-plausibility check uses a per-element Python loop instead of numpy min/max -- backlog, not urgent. See Sec 4.9.
+    * tests/test_run_bench.py reloads run_experiment.py fresh in every test rather than caching the module -- backlog, not urgent. See Sec 4.9.
+    * DMM cross-check readings -- deprioritized per Andrew's explicit instruction; not useful to the experiment's actual goal. Still present in run_bench(), unchanged tonight.
+    * Recipe file upload 413 -- NGINX client_max_body_size. Workaround: compress to JPEG.
+    * InsanelyGoodRecipes.com import -- Andrew to verify it saved a real recipe not a listing page.
+    * No UPS on server.
+    * AI meal planning -- full browser functional test not yet done.
+    * "Not Secure" badge on https://192.168.2.10/api/bench/docs -- root cause unknown, low priority.
+
+RESOLVED SINCE 7 JULY (no longer open):
+    * RC-Experiments comparison/plotting time-domain misalignment bug (Sec 4.9) -- RESOLVED 8 July 2026. Fix #1 (clip to real overlap window) + Fix #2 (align time origins via shared rising edge), both implemented, test-first, hardware-verified (RMS 0.137V / max 0.655V, down from 2.22V/4.96V). RC-Experiments PR #11.
+    * Leftover TEMP DIAGNOSTIC debug logging in run_bench() -- removed, RC-Experiments PR #12.
+    * experiment-2-series-rc/README.md -- written, RC-Experiments PR #13.
+    * numpy/matplotlib dependency -- undocumented since the script was first written, now declared in requirements.txt and documented, RC-Experiments PR #14.
+
+STILL OPEN / NOT RESOLVED (do not mark these resolved without live re-verification):
+    * BIS API key rotation -- still not done, eight+ sessions overdue.
+    * Experiment 2 workflow revisit (DMM timing, side-by-side GUI, AI analysis) -- not yet scoped, planning discussion is next session's top priority.
